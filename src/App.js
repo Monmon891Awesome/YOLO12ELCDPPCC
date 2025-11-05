@@ -1,15 +1,34 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LungEvityUI from './LungEvityUI';
+import Login from './Login';
+import AdminDashboard from './AdminDashboard';
+import PatientDashboard from './PatientDashboard';
+import PatientRegistration from './PatientRegistration';
+import PatientPlatform from './PatientPlatform';
 import './App.css';
 import './Login.css';
 import './Dashboard.css';
 import './PatientRegistration.css';
+import './LungEvity.css';
+import './LungEvityIcons.css';
+import './PatientPlatformIntegration.css';
 
 function App() {
   return (
-    <div className="App">
-      <LungEvityUI />
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<LungEvityUI />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<PatientRegistration />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/patient" element={<PatientDashboard />} />
+          <Route path="/platform" element={<PatientPlatform />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
