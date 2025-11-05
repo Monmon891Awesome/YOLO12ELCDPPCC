@@ -117,6 +117,128 @@ YOLO12ELCDPPCC-1/
 - React 18.2.0
 - React Router DOM 6.16.0
 - React Scripts 5.0.1
+- Lucide React 0.263.1 (Icons)
+
+## YOLOv12 Model Integration
+
+### Overview
+
+The application integrates with a YOLOv12 backend API for lung cancer detection from CT scans. The frontend includes:
+
+- **API Service** ([src/services/yoloApi.js](src/services/yoloApi.js)) - Handles all API communication
+- **Upload Component** ([src/components/ScanUpload.jsx](src/components/ScanUpload.jsx)) - File upload with progress tracking
+- **Results Component** ([src/components/ScanResults.jsx](src/components/ScanResults.jsx)) - Visualizes scan results and detections
+
+### Setting Up the Backend
+
+#### Option 1: Quick Start (Mock Backend)
+
+Use the provided example backend for development:
+
+```bash
+# Navigate to docs folder
+cd docs
+
+# Install dependencies
+pip install fastapi uvicorn python-multipart opencv-python pillow numpy
+
+# Run the mock server
+uvicorn backend_example:app --host 0.0.0.0 --port 8000 --reload
+```
+
+#### Option 2: Production Backend with YOLOv12
+
+1. Train or obtain a YOLOv12 model for lung cancer detection
+2. Install dependencies:
+```bash
+pip install fastapi uvicorn ultralytics opencv-python pillow numpy
+```
+
+3. Update [backend_example.py](docs/backend_example.py):
+```python
+from ultralytics import YOLO
+
+# Load your trained model
+model = YOLO('path/to/your/yolov12_lung_cancer.pt')
+MODEL_LOADED = True
+```
+
+4. Implement the API endpoints as specified in [BACKEND_API_REQUIREMENTS.md](docs/BACKEND_API_REQUIREMENTS.md)
+
+### Frontend Configuration
+
+Update your `.env` file:
+
+```env
+REACT_APP_YOLO_API_URL=http://localhost:8000
+```
+
+For production:
+```env
+REACT_APP_YOLO_API_URL=https://your-backend-api.com
+```
+
+### Using the Scan Upload Feature
+
+1. Import the components in your page:
+```javascript
+import ScanUpload from './components/ScanUpload';
+import ScanResults from './components/ScanResults';
+```
+
+2. Add the upload component:
+```javascript
+const [scanResult, setScanResult] = useState(null);
+
+<ScanUpload
+  onScanComplete={(result) => setScanResult(result)}
+  onError={(error) => console.error(error)}
+/>
+
+{scanResult && <ScanResults scanData={scanResult} />}
+```
+
+### Supported File Formats
+
+- DICOM (.dcm)
+- NIFTI (.nii, .nii.gz)
+- JPEG (.jpg, .jpeg)
+- PNG (.png)
+
+Maximum file size: 100MB
+
+### API Endpoints
+
+The backend should implement these endpoints:
+
+- `POST /api/v1/scan/analyze` - Upload and analyze scan
+- `GET /api/v1/scan/:scanId` - Get scan results
+- `GET /api/v1/patient/:patientId/scans` - Get patient's scans
+- `POST /api/v1/scan/batch-analyze` - Batch analysis
+- `GET /api/v1/config/thresholds` - Get detection thresholds
+- `GET /health` - Health check
+
+Full API specification: [docs/BACKEND_API_REQUIREMENTS.md](docs/BACKEND_API_REQUIREMENTS.md)
+
+### Detection Results Format
+
+The API returns detection results with:
+- **Risk Level**: high, medium, low, or none
+- **Confidence Score**: 0.0 to 1.0
+- **Detections**: Array of found nodules/masses with:
+  - Class (nodule, mass, opacity)
+  - Bounding box coordinates
+  - Characteristics (size, shape, density)
+
+### Deployment Notes
+
+For production deployment:
+
+1. Deploy backend API to cloud platform (AWS, GCP, Azure, etc.)
+2. Update CORS settings in backend to include your Vercel domain
+3. Set `REACT_APP_YOLO_API_URL` environment variable in Vercel
+4. Ensure backend has sufficient GPU resources for YOLO inference
+5. Implement proper authentication and data security
 
 ## License
 
