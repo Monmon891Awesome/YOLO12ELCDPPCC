@@ -240,6 +240,113 @@ For production deployment:
 4. Ensure backend has sufficient GPU resources for YOLO inference
 5. Implement proper authentication and data security
 
+## AWS S3 Integration
+
+### Features
+
+The platform includes comprehensive AWS S3 integration for secure image storage:
+
+- **Image Hashing**: SHA-256 hashing for deduplication and integrity verification
+- **Thumbnail Generation**: Automatic thumbnail creation for fast previews
+- **Presigned URLs**: Secure, time-limited access to stored images
+- **Duplicate Detection**: Prevent redundant uploads of the same image
+
+### Setup
+
+1. **Create S3 Bucket**:
+```bash
+aws s3 mb s3://lungevity-scans --region us-east-1
+```
+
+2. **Configure IAM Permissions**:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::lungevity-scans/*"
+    }
+  ]
+}
+```
+
+3. **Set Environment Variables**:
+```env
+REACT_APP_S3_BUCKET=lungevity-scans
+REACT_APP_S3_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+```
+
+4. **Install Dependencies**:
+```bash
+npm install crypto-js
+```
+
+### S3 Service API
+
+The [S3 service](src/services/s3Service.js) provides:
+- `hashImage(file)` - Generate SHA-256 hash
+- `generateThumbnail(file)` - Create image thumbnail
+- `uploadImageComplete(file, onProgress)` - Complete upload workflow
+- `checkDuplicateImage(hash)` - Check for existing uploads
+
+See [s3_backend_example.py](docs/s3_backend_example.py) for backend implementation.
+
+## Security Features
+
+### Input Sanitization
+
+The platform includes comprehensive security utilities in [src/utils/security.js](src/utils/security.js):
+
+- **XSS Prevention**: HTML tag removal and special character escaping
+- **SQL Injection Prevention**: Input sanitization for database queries
+- **Caesar Cipher**: Basic data obfuscation (use AES-256 for production)
+- **Rate Limiting**: Client-side request throttling
+- **File Validation**: Type and size checking for uploads
+
+### Usage Example
+
+```javascript
+import { sanitizeInput, sanitizeSQLInput, validateFileUpload } from './utils/security';
+
+// Sanitize user input
+const cleanInput = sanitizeInput(userInput);
+
+// Prevent SQL injection
+const safeData = sanitizeSQLInput(formData);
+
+// Validate file before upload
+const { valid, error } = validateFileUpload(file, ['.jpg', '.png'], 100);
+```
+
+### Security Best Practices
+
+1. **Never trust user input** - Always sanitize on both client and server
+2. **Use parameterized queries** - Prevent SQL injection
+3. **Implement HTTPS** - Encrypt data in transit
+4. **Use strong encryption** - AES-256 for sensitive data, not Caesar cipher
+5. **Regular security audits** - Keep dependencies updated
+6. **Rate limiting** - Prevent abuse and DDoS attacks
+7. **HIPAA compliance** - For handling medical data
+
+See [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for the full security roadmap.
+
+## Improvements & Roadmap
+
+Check [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for:
+- Current implementation status
+- Planned features and enhancements
+- Technical debt and known issues
+- Timeline and milestones
+- Deployment checklist
+
 ## License
 
 Private Project
