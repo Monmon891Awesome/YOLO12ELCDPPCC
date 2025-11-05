@@ -358,8 +358,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                   View All My Scans
                 </button>
               </div>
-            </>
-              
+
               {/* Dashboard Summary Cards */}
               <div className="dashboard-grid">
                 <div className="dashboard-card">
