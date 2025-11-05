@@ -328,37 +328,37 @@ const PatientDashboard = ({ username, onLogout }) => {
                   </div>
                 </div>
               )}
-                
-                <div className="upload-info-section">
-                  <div className="info-card">
-                    <div className="info-icon">
-                      <AlertCircle size={20} />
-                    </div>
-                    <div className="info-content">
-                      <h4>Why Upload Your CT Scans?</h4>
-                      <p>Our AI system can detect early signs of lung cancer with high accuracy, providing you and your doctors with valuable insights.</p>
-                    </div>
+
+              <div className="upload-info-section">
+                <div className="info-card">
+                  <div className="info-icon">
+                    <AlertCircle size={20} />
                   </div>
-                  
-                  <div className="info-card">
-                    <div className="info-icon">
-                      <Info size={20} />
-                    </div>
-                    <div className="info-content">
-                      <h4>What Happens Next?</h4>
-                      <p>After upload, your scan will be analyzed automatically. Results are typically available within 30 minutes.</p>
-                    </div>
+                  <div className="info-content">
+                    <h4>Why Upload Your CT Scans?</h4>
+                    <p>Our AI system can detect early signs of lung cancer with high accuracy, providing you and your doctors with valuable insights.</p>
                   </div>
-                  
-                  <button 
-                    className="view-all-scans-button"
-                    onClick={() => setActiveTab('scans')}
-                    type="button"
-                  >
-                    View All My Scans
-                  </button>
                 </div>
+
+                <div className="info-card">
+                  <div className="info-icon">
+                    <Info size={20} />
+                  </div>
+                  <div className="info-content">
+                    <h4>What Happens Next?</h4>
+                    <p>After upload, your scan will be analyzed automatically. Results are typically available within 30 minutes.</p>
+                  </div>
+                </div>
+
+                <button
+                  className="view-all-scans-button"
+                  onClick={() => setActiveTab('scans')}
+                  type="button"
+                >
+                  View All My Scans
+                </button>
               </div>
+            </>
               
               {/* Dashboard Summary Cards */}
               <div className="dashboard-grid">
