@@ -1,40 +1,60 @@
 import React, { useState } from 'react';
-import { 
-  User, 
-  FileText, 
-  Calendar, 
-  MessageCircle, 
-  LogOut, 
-  Home, 
-  Upload, 
-  Clock, 
-  ChevronRight, 
-  Activity, 
-  X, 
-  Camera, 
-  CheckCircle, 
+import {
+  User,
+  FileText,
+  Calendar,
+  MessageCircle,
+  LogOut,
+  Home,
+  Upload,
+  Clock,
+  ChevronRight,
+  Activity,
+  X,
+  Camera,
+  CheckCircle,
   Layers,
   AlertCircle,
   Info,
   Menu,
-  Search 
+  Search
 } from 'lucide-react';
 import './Dashboard.css';
 import './PatientPlatformIntegration.css';
 import PatientPlatform from './PatientPlatform';
 import './Platform.css'; // Import platform CSS
 import SimplifiedPatientPlatform from './SimplifiedPatientPlatform'; // Import the new component
+import ScanUpload from './components/ScanUpload';
+import ScanResults from './components/ScanResults';
 
 const PatientDashboard = ({ username, onLogout }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-  
+
+  // Scan upload and results state
+  const [currentScanResult, setCurrentScanResult] = useState(null);
+  const [scanHistory, setScanHistory] = useState([]);
+
   // New state variables for drag and drop functionality
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [quickUploadSuccess, setQuickUploadSuccess] = useState(false);
+
+  // Handle scan upload completion
+  const handleScanComplete = (result) => {
+    setCurrentScanResult(result);
+    setScanHistory([result, ...scanHistory]);
+    setUploadSuccess(true);
+    // Auto-switch to results view
+    setTimeout(() => setActiveTab('results'), 500);
+  };
+
+  const handleScanError = (error) => {
+    console.error('Scan upload error:', error);
+    alert(`Scan upload failed: ${error.message}`);
+  };
   
   // Mock data for recent uploads
   const recentUploads = [
@@ -198,7 +218,7 @@ const PatientDashboard = ({ username, onLogout }) => {
             <Calendar className="sidebar-icon" />
             <span>Book Doctor</span>
           </button>
-          <button 
+          <button
             className={`sidebar-item ${activeTab === 'scans' ? 'active' : ''}`}
             onClick={() => setActiveTab('scans')}
             type="button"
@@ -206,7 +226,15 @@ const PatientDashboard = ({ username, onLogout }) => {
             <Upload className="sidebar-icon" />
             <span>CT Scans</span>
           </button>
-          <button 
+          <button
+            className={`sidebar-item ${activeTab === 'results' ? 'active' : ''}`}
+            onClick={() => setActiveTab('results')}
+            type="button"
+          >
+            <Activity className="sidebar-icon" />
+            <span>Scan Results</span>
+          </button>
+          <button
             className={`sidebar-item ${activeTab === 'platform' ? 'active' : ''}`}
             onClick={() => setActiveTab('platform')}
             type="button"
@@ -248,6 +276,7 @@ const PatientDashboard = ({ username, onLogout }) => {
             {activeTab === 'home' && 'Dashboard'}
             {activeTab === 'appointments' && 'Book a Doctor'}
             {activeTab === 'scans' && 'CT Scan Analysis'}
+            {activeTab === 'results' && 'Scan Results'}
             {activeTab === 'platform' && 'CT Scan Platform'}
             {activeTab === 'history' && 'Recent Uploads'}
             {activeTab === 'contact' && 'Contact Your Doctor'}
@@ -279,74 +308,26 @@ const PatientDashboard = ({ username, onLogout }) => {
                 <h2>Welcome to Your Patient Portal</h2>
                 <p>Monitor your lung health, upload CT scan results, and stay connected with your healthcare team.</p>
               </div>
-              
-              {/* Centered CT Scan Upload Section */}
-              <div className="central-upload-section">
-                <div className="upload-section-header">
-                  <h2>CT Scan Upload</h2>
-                  <p>Upload your CT scan images for AI-powered analysis and expert review</p>
+
+              {/* YOLOv12 Scan Upload Component */}
+              <ScanUpload
+                onScanComplete={handleScanComplete}
+                onError={handleScanError}
+              />
+
+              {/* Show latest scan result if available */}
+              {currentScanResult && (
+                <div className="latest-result-preview">
+                  <h3>Latest Scan Result</h3>
+                  <div className="result-quick-info">
+                    <p><strong>Status:</strong> {currentScanResult.results.detected ? 'Detection Found' : 'No Detection'}</p>
+                    <p><strong>Risk Level:</strong> <span className={`risk-${currentScanResult.results.riskLevel}`}>{currentScanResult.results.riskLevel.toUpperCase()}</span></p>
+                    <button onClick={() => setActiveTab('results')} type="button" className="view-full-results">
+                      View Full Results
+                    </button>
+                  </div>
                 </div>
-                
-                <div 
-                  className={`central-upload-area ${isDragging ? 'dragging' : ''}`}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                >
-                  {uploadProgress !== null ? (
-                    <div className="upload-progress-container">
-                      {quickUploadSuccess ? (
-                        <div className="upload-success">
-                          <CheckCircle size={48} className="success-icon-large" />
-                          <h3>Upload Successful!</h3>
-                          <p>Your CT scan has been uploaded and will be analyzed shortly.</p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="upload-progress-circle">
-                            <svg width="70" height="70" viewBox="0 0 100 100">
-                              <circle 
-                                cx="50" cy="50" r="40" 
-                                stroke="#e5e7eb" 
-                                strokeWidth="8" 
-                                fill="none" 
-                              />
-                              <circle 
-                                cx="50" cy="50" r="40" 
-                                stroke="#3b82f6" 
-                                strokeWidth="8" 
-                                fill="none" 
-                                strokeLinecap="round"
-                                strokeDasharray="251.2"
-                                strokeDashoffset={251.2 - (251.2 * uploadProgress) / 100}
-                                transform="rotate(-90 50 50)"
-                              />
-                            </svg>
-                            <span className="progress-text">{uploadProgress}%</span>
-                          </div>
-                          <p>Uploading your scan...</p>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <Camera className="upload-icon-centered" />
-                      <h3>Drag & Drop Your CT Scan Files Here</h3>
-                      <p>or</p>
-                      <label className="browse-files-button">
-                        Browse Files
-                        <input 
-                          type="file" 
-                          className="hidden-input" 
-                          accept=".dcm,.nii,.jpg,.png,.zip"
-                          onChange={handleFileInputChange}
-                        />
-                      </label>
-                      <p className="upload-formats">Accepted formats: DICOM, NIFTI, JPEG, PNG</p>
-                    </>
-                  )}
-                </div>
+              )}
                 
                 <div className="upload-info-section">
                   <div className="info-card">
@@ -445,6 +426,23 @@ const PatientDashboard = ({ username, onLogout }) => {
             </>
           )}
           
+          {activeTab === 'results' && (
+            <>
+              {currentScanResult ? (
+                <ScanResults scanData={currentScanResult} />
+              ) : (
+                <div className="no-results-message">
+                  <Info size={48} color="#999" />
+                  <h3>No Scan Results Available</h3>
+                  <p>Upload a CT scan from the Home tab to see your results here.</p>
+                  <button onClick={() => setActiveTab('home')} type="button" className="go-home-button">
+                    Go to Upload
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
           {activeTab === 'platform' && (
             <SimplifiedPatientPlatform/>
           )}
