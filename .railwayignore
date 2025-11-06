@@ -1,0 +1,34 @@
+# Ignore frontend files and dependencies
+node_modules/
+package.json
+package-lock.json
+public/
+src/
+build/
+.env
+.env.local
+.env.development
+.env.production
+
+# Ignore documentation
+*.md
+docs/
+
+# Ignore git and IDE files
+.git/
+.gitignore
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Ignore test and misc files
+*.png
+*.jpg
+*.jpeg
+*.txt
+*.log
