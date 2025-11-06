@@ -628,25 +628,25 @@ const PatientDashboard = ({ username, onLogout }) => {
                   <div className="patient-grid">
                     <div className="patient-field">
                       <p className="field-label">Patient Name</p>
-                      <p className="field-value">{patientInfo.name}</p>
+                      <p className="field-value">{patientProfile.name}</p>
                     </div>
                     <div className="patient-field">
                       <p className="field-label">Patient ID</p>
-                      <p className="field-value">{patientInfo.id}</p>
+                      <p className="field-value">{patientProfile.id}</p>
                     </div>
                     <div className="patient-field">
                       <p className="field-label">Age</p>
-                      <p className="field-value">{patientInfo.age}</p>
+                      <p className="field-value">{patientProfile.age}</p>
                     </div>
                     <div className="patient-field">
-                      <p className="field-label">Scan Date</p>
-                      <p className="field-value">{patientInfo.scanDate}</p>
+                      <p className="field-label">Last Scan Date</p>
+                      <p className="field-value">{dashboardStats.lastScanDate ? formatDate(dashboardStats.lastScanDate) : 'No scans yet'}</p>
                     </div>
                   </div>
-                  
+
                   <div className="patient-notes">
                     <p className="notes-label">Clinical Notes</p>
-                    <p className="notes-text">{patientInfo.clinicalNotes}</p>
+                    <p className="notes-text">{patientProfile.clinicalNotes}</p>
                   </div>
                 </div>
               </div>
