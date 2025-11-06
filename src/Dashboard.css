@@ -2368,3 +2368,531 @@
 .no-results-message .action-button:hover {
   background-color: var(--blue-700);
 }
+
+/* ============================================
+   LUNG DECORATIVE BACKGROUNDS
+   ============================================ */
+.dashboard-lung-bg {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  background-image: url('./assets/lungs.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dashboard-lung-bg-left {
+  top: 20%;
+  left: -50px;
+  transform: rotate(-15deg);
+}
+
+.dashboard-lung-bg-right {
+  bottom: 10%;
+  right: -50px;
+  transform: rotate(15deg) scaleX(-1);
+}
+
+/* ============================================
+   LOGO IMAGES IN DASHBOARDS
+   ============================================ */
+.sidebar-logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  margin-right: 0.5rem;
+}
+
+.dashboard-logo-img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  margin-right: 0.75rem;
+}
+
+/* ============================================
+   DOCTOR BADGE
+   ============================================ */
+.doctor-badge {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+/* ============================================
+   DOCTOR DASHBOARD STYLES
+   ============================================ */
+.doctor-content {
+  background: linear-gradient(to bottom, #f9fafb 0%, #ffffff 100%);
+}
+
+/* Stats Cards Row */
+.stats-cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.stat-card-icon.patients {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.stat-card-icon.scans {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.stat-card-icon.appointments {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.stat-card-icon.urgent {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.stat-card-content {
+  flex: 1;
+}
+
+.stat-card-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.stat-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.stat-card-change {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.stat-card-change.positive {
+  color: #10b981;
+}
+
+.stat-card-change.warning {
+  color: #f59e0b;
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.view-all-button {
+  background: none;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-all-button:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+/* Patients Attention List */
+.patients-attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.patient-attention-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border-left: 4px solid #3b82f6;
+}
+
+.patient-attention-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #1f2937;
+}
+
+.patient-attention-info p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.patient-attention-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.action-button-small {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Doctor Scans Grid */
+.doctor-scans-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.scan-viewer-large {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.scan-image-large {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.scan-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.scan-control-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.scan-analysis-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.analysis-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.metric-label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.analysis-recommendations h4 {
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.recommendations-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendations-list li {
+  padding: 0.75rem;
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+  margin-bottom: 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* ============================================
+   ADMIN DASHBOARD - DOCTOR MANAGEMENT
+   ============================================ */
+.doctors-grid-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.doctor-card-admin {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.doctor-card-admin:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.doctor-image-container {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.doctor-image-admin {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.doctor-info-admin {
+  padding: 1.5rem;
+}
+
+.doctor-info-admin h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.doctor-specialty {
+  color: #3b82f6;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.doctor-email,
+.doctor-phone {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0;
+}
+
+.doctor-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.edit-doctor-button,
+.delete-doctor-button {
+  flex: 1;
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-doctor-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.edit-doctor-button:hover {
+  background: #2563eb;
+}
+
+.delete-doctor-button {
+  background: white;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.delete-doctor-button:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.no-doctors-message {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.no-doctors-message h3 {
+  margin: 1rem 0 0.5rem;
+  color: #1f2937;
+}
+
+.no-doctors-message p {
+  color: #6b7280;
+}
+
+/* ============================================
+   DOCTOR CREATION MODAL
+   ============================================ */
+.doctor-modal {
+  max-width: 700px;
+  width: 90vw;
+}
+
+.doctor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.submit-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-button:hover {
+  background: #2563eb;
+}
+
+.cancel-button {
+  background: white;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-button:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 768px) {
+  .doctor-scans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-cards-row {
+    grid-template-columns: 1fr;
+  }
+
+  .doctors-grid-admin {
+    grid-template-columns: 1fr;
+  }
+}

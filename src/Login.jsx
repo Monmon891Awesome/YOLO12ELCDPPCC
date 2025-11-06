@@ -34,7 +34,7 @@ const Login = ({ onClose, onLogin, onRegister }) => {
     setIsSubmitting(true);
     
     // Check if we're logging in as admin (for demo purposes)
-    if (activeTab === 'doctor' && formData.email === 'admin@lungevity.com' && formData.password === 'admin123') {
+    if (activeTab === 'doctor' && formData.email === 'admin@pneumai.com' && formData.password === 'admin123') {
       setTimeout(() => {
         setIsSubmitting(false);
         onLogin('admin', 'Admin');  // Log in as admin
@@ -43,7 +43,7 @@ const Login = ({ onClose, onLogin, onRegister }) => {
     }
 
     // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('lungEvityUsers') || '[]');
+    const users = JSON.parse(localStorage.getItem('pneumAIUsers') || '[]');
     
     // Find user by email and password
     const user = users.find(user => 
@@ -78,14 +78,14 @@ const Login = ({ onClose, onLogin, onRegister }) => {
           <div className="login-info-overlay"></div>
           <div className="login-info-content">
             <div className="login-info-logo">
-              <Layers size={32} />
-              <h2 style={{ marginLeft: '10px', fontSize: '1.5rem' }}>LungEvity</h2>
+              <img src="/assets/logo-medic.jpg" alt="PneumAI" style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255, 255, 255, 0.5)' }} />
+              <h2 style={{ marginLeft: '10px', fontSize: '1.5rem' }}>PneumAI</h2>
             </div>
             
-            <h1 className="login-info-title">Transforming Lung Cancer Detection and Care</h1>
+            <h1 className="login-info-title">Supporting Lung Cancer Detection and Care</h1>
             <p className="login-info-description">
-              LungEvity combines advanced AI diagnostics with comprehensive emotional support 
-              for patients and powerful clinical decision support for healthcare professionals.
+              PneumAI combines AI-assisted analysis with comprehensive emotional support
+              for patients and helpful clinical insights for healthcare professionals.
             </p>
             
             <div className="login-features">
@@ -93,7 +93,7 @@ const Login = ({ onClose, onLogin, onRegister }) => {
                 <div className="login-feature-icon">
                   <Shield size={20} />
                 </div>
-                <div>AI-powered CT scan analysis for early detection</div>
+                <div>AI-assisted CT scan analysis to support healthcare professionals</div>
               </div>
               
               <div className="login-feature">
@@ -233,7 +233,7 @@ const Login = ({ onClose, onLogin, onRegister }) => {
                   fontSize: '0.875rem',
                   color: '#1e40af'
                 }}>
-                  <strong>Healthcare Professional Demo:</strong> Use admin@lungevity.com / admin123
+                  <strong>Healthcare Professional Demo:</strong> Use admin@pneumai.com / admin123
                 </div>
               )}
             </form>

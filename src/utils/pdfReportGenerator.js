@@ -21,7 +21,7 @@ export const generatePDFReport = async (scanData, patientInfo) => {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('LungEvity', margin, 20);
+  doc.text('PneumAI', margin, 20);
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -230,14 +230,14 @@ export const generatePDFReport = async (scanData, patientInfo) => {
   doc.setFontSize(8);
   doc.setTextColor(128, 128, 128);
   doc.text(
-    'LungEvity - AI-Powered Lung Cancer Detection System',
+    'PneumAI - AI-Powered Lung Cancer Detection System',
     pageWidth / 2,
     pageHeight - 10,
     { align: 'center' }
   );
 
   // ============ Save PDF ============
-  const filename = `LungEvity_Report_${scanData.scanId}_${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = `PneumAI_Report_${scanData.scanId}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 
   return filename;
@@ -280,7 +280,7 @@ export const generateJSONReport = (scanData, patientInfo) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `LungEvity_Report_${scanData.scanId}_${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `PneumAI_Report_${scanData.scanId}_${new Date().toISOString().split('T')[0]}.json`;
   a.click();
   URL.revokeObjectURL(url);
 

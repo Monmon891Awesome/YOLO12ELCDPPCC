@@ -5,7 +5,7 @@
 
 import CryptoJS from 'crypto-js';
 
-const S3_BUCKET = process.env.REACT_APP_S3_BUCKET || 'lungevity-scans';
+const S3_BUCKET = process.env.REACT_APP_S3_BUCKET || 'pneumai-scans';
 const S3_REGION = process.env.REACT_APP_S3_REGION || 'us-east-1';
 const API_ENDPOINT = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 

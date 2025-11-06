@@ -71,7 +71,7 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
       setIsSubmitting(true);
       
       // Save user to localStorage
-      const existingUsers = JSON.parse(localStorage.getItem('lungEvityUsers') || '[]');
+      const existingUsers = JSON.parse(localStorage.getItem('pneumAIUsers') || '[]');
       
       // Check if username or email already exists
       const existingUser = existingUsers.find(
@@ -98,7 +98,7 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
       };
       
       existingUsers.push(newUser);
-      localStorage.setItem('lungEvityUsers', JSON.stringify(existingUsers));
+      localStorage.setItem('pneumAIUsers', JSON.stringify(existingUsers));
       
       // Simulate a successful registration after a short delay
       setTimeout(() => {
@@ -136,7 +136,7 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
         ) : (
           <>
             <p className="registration-intro">
-              Join LungEvity to access your health information, connect with healthcare providers, and more.
+              Join PneumAI to access your health information, connect with healthcare providers, and more.
             </p>
             
             <form className="registration-form" onSubmit={handleSubmit}>

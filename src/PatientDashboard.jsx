@@ -213,9 +213,13 @@ const PatientDashboard = ({ username, onLogout }) => {
   
   return (
     <div className="dashboard-layout">
+      {/* Decorative lung backgrounds */}
+      <div className="dashboard-lung-bg dashboard-lung-bg-left"></div>
+      <div className="dashboard-lung-bg dashboard-lung-bg-right"></div>
+
       {/* Mobile menu button */}
-      <button 
-        className="mobile-menu-toggle" 
+      <button
+        className="mobile-menu-toggle"
         onClick={toggleMobileSidebar}
         type="button"
       >
@@ -225,8 +229,9 @@ const PatientDashboard = ({ username, onLogout }) => {
       {/* Sidebar */}
       <aside className={`dashboard-sidebar ${showMobileSidebar ? 'show' : ''}`}>
         <div className="sidebar-header">
-          <h2 className="dashboard-logo">LungEvity</h2>
-          <button 
+          <img src="/assets/logo-medic.jpg" alt="PneumAI" className="sidebar-logo-img" />
+          <h2 className="dashboard-logo">PneumAI</h2>
+          <button
             className="close-sidebar"
             onClick={() => setShowMobileSidebar(false)}
             type="button"
@@ -380,7 +385,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                   </div>
                   <div className="info-content">
                     <h4>Why Upload Your CT Scans?</h4>
-                    <p>Our AI system can detect early signs of lung cancer with high accuracy, providing you and your doctors with valuable insights.</p>
+                    <p>Our AI system assists in analyzing CT scans to provide you and your healthcare professionals with helpful insights for review.</p>
                   </div>
                 </div>
 
@@ -580,29 +585,21 @@ const PatientDashboard = ({ username, onLogout }) => {
                       <div className="analysis-content">
                         <div className="analysis-section">
                           <div className="probability-header">
-                            <span className="probability-label">Cancer Probability</span>
+                            <span className="probability-label">Analysis Status</span>
                             <span className="probability-value" style={{
                               color: currentScanResult.results.riskLevel === 'high' ? '#ef4444' :
                                      currentScanResult.results.riskLevel === 'medium' ? '#f97316' :
                                      currentScanResult.results.riskLevel === 'low' ? '#eab308' : '#22c55e'
                             }}>
-                              {(currentScanResult.results.confidence * 100).toFixed(0)}%
+                              Complete
                             </span>
-                          </div>
-                          <div className="progress-container">
-                            <div
-                              className="progress-bar"
-                              style={{
-                                width: `${currentScanResult.results.confidence * 100}%`,
-                                backgroundColor: currentScanResult.results.riskLevel === 'high' ? '#ef4444' :
-                                               currentScanResult.results.riskLevel === 'medium' ? '#f97316' :
-                                               currentScanResult.results.riskLevel === 'low' ? '#eab308' : '#22c55e'
-                              }}
-                            ></div>
                           </div>
                           <div className="risk-badge-container">
                             <span className={`risk-badge-large risk-${currentScanResult.results.riskLevel}`}>
-                              {currentScanResult.results.riskLevel.toUpperCase()} RISK
+                              {currentScanResult.results.riskLevel === 'none' ? 'REVIEWED' :
+                               currentScanResult.results.riskLevel === 'low' ? 'ATTENTION SUGGESTED' :
+                               currentScanResult.results.riskLevel === 'medium' ? 'REVIEW RECOMMENDED' :
+                               'PROFESSIONAL REVIEW NEEDED'}
                             </span>
                           </div>
                         </div>
@@ -619,8 +616,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                                       {detection.class.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} detected
                                     </p>
                                     <p className="abnormality-details">
-                                      Confidence: {(detection.confidence * 100).toFixed(1)}%
-                                      {detection.characteristics && `, Size: ${detection.characteristics.size_mm}mm, ${detection.characteristics.shape}`}
+                                      {detection.characteristics ? `Size: ${detection.characteristics.size_mm}mm, ${detection.characteristics.shape}` : 'Detected by AI analysis'}
                                     </p>
                                   </div>
                                 </li>
@@ -632,17 +628,17 @@ const PatientDashboard = ({ username, onLogout }) => {
                         </div>
 
                         <div className="section-divider">
-                          <h5 className="section-subtitle">Recommended Actions</h5>
+                          <h5 className="section-subtitle">Suggested Considerations</h5>
                           <ul className="action-list">
                             {currentScanResult.results.riskLevel === 'high' && (
                               <>
                                 <li className="action-item">
                                   <Activity className="action-icon icon-sm" />
-                                  Schedule immediate consultation with oncologist
+                                  Healthcare professional consultation recommended
                                 </li>
                                 <li className="action-item">
                                   <Activity className="action-icon icon-sm" />
-                                  Consider biopsy for definitive diagnosis
+                                  Further evaluation may be beneficial
                                 </li>
                               </>
                             )}
@@ -650,11 +646,11 @@ const PatientDashboard = ({ username, onLogout }) => {
                               <>
                                 <li className="action-item">
                                   <Activity className="action-icon icon-sm" />
-                                  Schedule follow-up scan in 30 days
+                                  Follow-up imaging may be considered
                                 </li>
                                 <li className="action-item">
                                   <Activity className="action-icon icon-sm" />
-                                  Consult with pulmonary specialist
+                                  Discuss findings with healthcare professional
                                 </li>
                               </>
                             )}
@@ -662,7 +658,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                               <>
                                 <li className="action-item">
                                   <Activity className="action-icon icon-sm" />
-                                  Schedule routine follow-up in 6 months
+                                  Consider routine follow-up with healthcare provider
                                 </li>
                                 <li className="action-item">
                                   <Activity className="action-icon icon-sm" />
@@ -797,8 +793,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                       <tr>
                         <th>Scan Date</th>
                         <th>Risk Level</th>
-                        <th>Detection</th>
-                        <th>Confidence</th>
+                        <th>Findings</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -811,8 +806,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                               {(scan.results?.riskLevel || 'none').toUpperCase()}
                             </span>
                           </td>
-                          <td>{scan.results?.detected ? 'Yes' : 'No'}</td>
-                          <td>{((scan.results?.confidence || 0) * 100).toFixed(1)}%</td>
+                          <td>{scan.results?.detected ? 'Areas Detected' : 'None Detected'}</td>
                           <td>
                             <div className="table-actions">
                               <button

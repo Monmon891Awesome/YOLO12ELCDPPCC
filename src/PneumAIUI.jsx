@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Stethoscope, Users, FileText, HelpCircle, Home, Menu, X, Upload, ChevronRight, LogIn, Activity, Layers } from 'lucide-react';
-import './LungEvity.css'; // Import the CSS file
+import './PneumAI.css'; // Import the CSS file
 import './Login.css'; // Import login CSS
 import './Dashboard.css'; // Import dashboard CSS
 import './PatientRegistration.css'; // Import patient registration CSS
@@ -8,8 +8,9 @@ import Login from './Login'; // Import Login component
 import PatientRegistration from './PatientRegistration'; // Import Patient Registration component
 import PatientDashboard from './PatientDashboard'; // Import Patient Dashboard
 import AdminDashboard from './AdminDashboard'; // Import Admin Dashboard
+import DoctorDashboard from './DoctorDashboard'; // Import Doctor Dashboard
 
-const LungevityUI = () => {
+const PneumAIUI = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   
@@ -22,7 +23,7 @@ const LungevityUI = () => {
   
   // Check if user was previously logged in
   useEffect(() => {
-    const savedSession = JSON.parse(localStorage.getItem('lungEvitySession') || 'null');
+    const savedSession = JSON.parse(localStorage.getItem('pneumAISession') || 'null');
     if (savedSession) {
       setIsLoggedIn(true);
       setUserType(savedSession.userType);
@@ -30,17 +31,17 @@ const LungevityUI = () => {
     }
     
     // Initialize demo admin account if it doesn't exist
-    const users = JSON.parse(localStorage.getItem('lungEvityUsers') || '[]');
-    const adminExists = users.some(user => user.email === 'admin@lungevity.com');
+    const users = JSON.parse(localStorage.getItem('pneumAIUsers') || '[]');
+    const adminExists = users.some(user => user.email === 'admin@pneumai.com');
     if (!adminExists) {
       users.push({
         username: 'Admin',
-        email: 'admin@lungevity.com',
+        email: 'admin@pneumai.com',
         password: 'admin123',
         userType: 'admin',
         registeredAt: new Date().toISOString()
       });
-      localStorage.setItem('lungEvityUsers', JSON.stringify(users));
+      localStorage.setItem('pneumAIUsers', JSON.stringify(users));
     }
   }, []);
   
@@ -59,7 +60,7 @@ const LungevityUI = () => {
     
     // Save session to localStorage
     const session = { userType: type, username: user };
-    localStorage.setItem('lungEvitySession', JSON.stringify(session));
+    localStorage.setItem('pneumAISession', JSON.stringify(session));
   };
   
   // Handle logout
@@ -69,7 +70,7 @@ const LungevityUI = () => {
     setUsername('');
     
     // Remove session from localStorage
-    localStorage.removeItem('lungEvitySession');
+    localStorage.removeItem('pneumAISession');
   };
   
   // Close login modal
@@ -100,6 +101,8 @@ const LungevityUI = () => {
       return <PatientDashboard username={username} onLogout={handleLogout} />;
     } else if (userType === 'admin') {
       return <AdminDashboard username={username} onLogout={handleLogout} />;
+    } else if (userType === 'doctor') {
+      return <DoctorDashboard username={username} onLogout={handleLogout} />;
     }
   }
   
@@ -109,17 +112,13 @@ const LungevityUI = () => {
       <header className="header">
         <div className="container header-container">
           <div className="logo-container">
-            <Layers className="icon" />
-            <h1 className="logo-text">LungEvity</h1>
+            <img src="/assets/logo-medic.jpg" alt="PneumAI Logo" className="logo-image" />
+            <h1 className="logo-text">PneumAI</h1>
           </div>
           
           {/* Desktop Navigation */}
           <nav className="desktop-nav">
             <a href="#" className="nav-link">Home</a>
-            <a href="#" className="nav-link">For Patients</a>
-            <a href="#" className="nav-link">For Doctors</a>
-            <a href="#" className="nav-link">Research</a>
-            <a href="#" className="nav-link">About Us</a>
             <button className="sign-in-button" onClick={handleLoginClick} type="button">
               <LogIn className="icon-sm" /> Sign In
             </button>
@@ -140,10 +139,6 @@ const LungevityUI = () => {
           <div className="mobile-nav">
             <div className="container mobile-nav-container">
               <a href="#" className="mobile-nav-link">Home</a>
-              <a href="#" className="mobile-nav-link">For Patients</a>
-              <a href="#" className="mobile-nav-link">For Doctors</a>
-              <a href="#" className="mobile-nav-link">Research</a>
-              <a href="#" className="mobile-nav-link">About Us</a>
               <button className="mobile-sign-in-button" onClick={handleLoginClick} type="button">
                 <LogIn className="icon-sm" /> Sign In
               </button>
@@ -154,25 +149,31 @@ const LungevityUI = () => {
       
       {/* Hero Section */}
       <section className="hero-section">
+        <div className="lung-background-left"></div>
+        <div className="lung-background-right"></div>
         <div className="container hero-container">
           <div className="hero-content">
-            <h2 className="hero-title">Transforming Lung Cancer Detection and Care</h2>
-            <p className="hero-description">Advanced AI-powered diagnostics paired with emotional support for patients and clinical decision support for healthcare professionals.</p>
+            <div className="hero-badge">AI-Assisted Healthcare Support</div>
+            <h2 className="hero-title">Supporting Lung Cancer Detection and Care</h2>
+            <p className="hero-description">AI-powered analysis tool designed to assist healthcare professionals in reviewing CT scans, paired with comprehensive patient support resources. A supportive tool to help in the detection and analysis of lung conditions.</p>
             <div className="hero-buttons">
               <button className="hero-button-primary" onClick={handleLoginClick} type="button">
-                Patient Portal
+                <Upload className="icon-sm" /> Patient Portal
               </button>
               <button className="hero-button-secondary" onClick={handleLoginClick} type="button">
-                Healthcare Professional Access
+                <Stethoscope className="icon-sm" /> Healthcare Professional Access
               </button>
             </div>
           </div>
           <div className="hero-image-container">
-            <img 
-              src="/api/placeholder/600/400" 
-              alt="AI Lung Scan Analysis" 
-              className="hero-image" 
-            />
+            <div className="hero-image-wrapper">
+              <img
+                src="/assets/lungs.png"
+                alt="AI Lung Scan Analysis"
+                className="hero-image hero-lungs-animation"
+              />
+              <div className="scan-lines"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -181,7 +182,7 @@ const LungevityUI = () => {
       {/* Features Section */}
       <section className="features-section">
         <div className="container">
-          <h2 className="section-title">How LungEvity Works</h2>
+          <h2 className="section-title">How PneumAI Works</h2>
           
           <div className="features-grid">
             {/* Feature 1 */}
@@ -189,8 +190,8 @@ const LungevityUI = () => {
               <div className="feature-icon-container">
                 <FileText className="feature-icon icon" />
               </div>
-              <h3 className="feature-title">AI-Powered Diagnostics</h3>
-              <p className="feature-description">Our advanced machine learning algorithms analyze CT scans to detect early signs of lung cancer with high accuracy.</p>
+              <h3 className="feature-title">AI-Assisted Analysis</h3>
+              <p className="feature-description">Machine learning algorithms assist in analyzing CT scans to help identify potential areas of concern for healthcare professional review.</p>
             </div>
             
             {/* Feature 2 */}
@@ -198,8 +199,8 @@ const LungevityUI = () => {
               <div className="feature-icon-container">
                 <Stethoscope className="feature-icon icon" />
               </div>
-              <h3 className="feature-title">Clinical Decision Support</h3>
-              <p className="feature-description">Pulmonologists and radiologists receive detailed insights to enhance diagnostic accuracy and treatment planning.</p>
+              <h3 className="feature-title">Healthcare Professional Support</h3>
+              <p className="feature-description">Healthcare professionals receive detailed insights and analysis results to support their diagnostic review and treatment planning.</p>
             </div>
             
             {/* Feature 3 */}
@@ -217,9 +218,9 @@ const LungevityUI = () => {
       {/* Doctor Platform Preview */}
       <section className="platform-section">
         <div className="container">
-          <h2 className="section-title">Doctor's Platform</h2>
+          <h2 className="section-title">Healthcare Professional Platform</h2>
           <p className="platform-description">
-            A powerful diagnostic tool designed for pulmonologists and radiologists to analyze CT scans and detect lung cancer using our advanced AI system.
+            A supportive analysis tool designed for healthcare professionals to review CT scans with AI-assisted insights.
           </p>
           
           {/* Sample Dashboard */}
@@ -285,10 +286,10 @@ const LungevityUI = () => {
                 <div className="scan-grid">
                   {/* Scan Viewer */}
                   <div className="scan-viewer">
-                    <img 
-                      src="/api/placeholder/400/400" 
-                      alt="CT Scan" 
-                      className="scan-image" 
+                    <img
+                      src="/assets/lungs.png"
+                      alt="CT Scan"
+                      className="scan-image"
                     />
                   </div>
                   
@@ -299,11 +300,8 @@ const LungevityUI = () => {
                     <div className="analysis-content">
                       <div className="analysis-section">
                         <div className="probability-header">
-                          <span className="probability-label">Cancer Probability</span>
-                          <span className="probability-value">68%</span>
-                        </div>
-                        <div className="progress-container">
-                          <div className="progress-bar" style={{width: '68%'}}></div>
+                          <span className="probability-label">Areas Requiring Attention</span>
+                          <span className="probability-value">Detected</span>
                         </div>
                       </div>
                       
@@ -328,19 +326,19 @@ const LungevityUI = () => {
                       </div>
                       
                       <div className="section-divider">
-                        <h5 className="section-subtitle">Recommended Actions</h5>
+                        <h5 className="section-subtitle">Suggested Considerations</h5>
                         <ul className="action-list">
                           <li className="action-item">
                             <Activity className="action-icon icon-sm" />
-                            Schedule follow-up scan in 30 days
+                            May benefit from follow-up imaging
                           </li>
                           <li className="action-item">
                             <Activity className="action-icon icon-sm" />
-                            Consider biopsy of right upper lobe nodule
+                            Healthcare professional review recommended
                           </li>
                           <li className="action-item">
                             <Activity className="action-icon icon-sm" />
-                            Refer to pulmonary specialist
+                            Further clinical evaluation may be needed
                           </li>
                         </ul>
                       </div>
@@ -390,7 +388,55 @@ const LungevityUI = () => {
           </div>
         </div>
       </section>
-      
+
+      {/* Healthcare Professionals Section */}
+      <section className="team-section">
+        <div className="container">
+          <h2 className="section-title">Our Healthcare Professionals</h2>
+          <p className="platform-description">
+            Experienced medical professionals ready to support your healthcare journey.
+          </p>
+
+          <div className="team-grid">
+            {/* Doctor 1 */}
+            <div className="team-card">
+              <div className="team-image-container">
+                <img src="/assets/ai-doc1.jpg" alt="Dr. Sarah Chen" className="team-image" />
+              </div>
+              <div className="team-info">
+                <h3 className="team-name">Dr. Sarah Chen</h3>
+                <p className="team-role">General Practitioner</p>
+                <p className="team-description">15+ years of experience in primary care and diagnostic imaging review.</p>
+              </div>
+            </div>
+
+            {/* Doctor 2 */}
+            <div className="team-card">
+              <div className="team-image-container">
+                <img src="/assets/ai-doc2.jpg" alt="Dr. Michael Torres" className="team-image" />
+              </div>
+              <div className="team-info">
+                <h3 className="team-name">Dr. Michael Torres</h3>
+                <p className="team-role">Medical Specialist</p>
+                <p className="team-description">Specialized in respiratory conditions and CT scan interpretation.</p>
+              </div>
+            </div>
+
+            {/* Doctor 3 */}
+            <div className="team-card">
+              <div className="team-image-container">
+                <img src="/assets/ai-doc3.png" alt="Dr. Emily Rodriguez" className="team-image" />
+              </div>
+              <div className="team-info">
+                <h3 className="team-name">Dr. Emily Rodriguez</h3>
+                <p className="team-role">Clinical Consultant</p>
+                <p className="team-description">Expert in patient care coordination and clinical decision support.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Patient Section */}
       <section className="support-section">
         <div className="container">
@@ -460,4 +506,4 @@ const LungevityUI = () => {
   );
 };
 
-export default LungevityUI;
+export default PneumAIUI;

@@ -4,11 +4,11 @@
  */
 
 const STORAGE_KEYS = {
-  PATIENT_PROFILE: 'lungevity_patient_profile',
-  SCAN_HISTORY: 'lungevity_scan_history',
-  APPOINTMENTS: 'lungevity_appointments',
-  DOCTORS: 'lungevity_doctors',
-  MESSAGES: 'lungevity_messages'
+  PATIENT_PROFILE: 'pneumai_patient_profile',
+  SCAN_HISTORY: 'pneumai_scan_history',
+  APPOINTMENTS: 'pneumai_appointments',
+  DOCTORS: 'pneumai_doctors',
+  MESSAGES: 'pneumai_messages'
 };
 
 // ============ Patient Profile Management ============

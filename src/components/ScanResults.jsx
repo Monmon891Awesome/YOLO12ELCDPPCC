@@ -146,8 +146,8 @@ const ScanResults = ({ scanData }) => {
               </span>
             </div>
             <div className="detail-item">
-              <span className="detail-label">Confidence:</span>
-              <span className="detail-value">{(confidence * 100).toFixed(1)}%</span>
+              <span className="detail-label">Status:</span>
+              <span className="detail-value">Analysis Complete</span>
             </div>
             <div className="detail-item">
               <span className="detail-label">Scan ID:</span>
@@ -199,8 +199,8 @@ const ScanResults = ({ scanData }) => {
               <div key={index} className="detection-card">
                 <div className="detection-header">
                   <span className="detection-class">{detection.class}</span>
-                  <span className="detection-confidence">
-                    {(detection.confidence * 100).toFixed(1)}% confidence
+                  <span className="detection-status">
+                    Detected
                   </span>
                 </div>
                 {detection.characteristics && (
