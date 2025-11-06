@@ -1,0 +1,216 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   YOLO12 LUNG CANCER DETECTION SYSTEM                        ║
+║                      Backend + Frontend Integration                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            USER INTERFACE (FRONTEND)                         │
+│                         React App - localhost:3000                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ User uploads CT scan
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          ScanUpload Component                                │
+│  - Drag & drop interface                                                    │
+│  - File validation (DICOM, JPEG, PNG)                                       │
+│  - Progress tracking                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ uploadScanWithProgress()
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          yoloApi.js Service                                  │
+│  - HTTP client                                                               │
+│  - FormData handling                                                         │
+│  - Progress callbacks                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ POST /api/v1/scan/analyze
+                                    │ multipart/form-data
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        BACKEND API (FastAPI)                                 │
+│                      backend_server.py - localhost:8000                      │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────┐         │
+│  │  1. Receive Upload                                             │         │
+│  │     - Validate file format                                     │         │
+│  │     - Check file size (< 100MB)                                │         │
+│  └────────────────────────────────────────────────────────────────┘         │
+│                             │                                                │
+│                             ▼                                                │
+│  ┌────────────────────────────────────────────────────────────────┐         │
+│  │  2. Image Processing                                           │         │
+│  │     - Read DICOM/JPEG/PNG                                      │         │
+│  │     - Convert to RGB                                           │         │
+│  │     - Preprocessing                                            │         │
+│  └────────────────────────────────────────────────────────────────┘         │
+│                             │                                                │
+│                             ▼                                                │
+│  ┌────────────────────────────────────────────────────────────────┐         │
+│  │  3. YOLO Inference                                             │         │
+│  │     ┌──────────────────────────────────┐                       │         │
+│  │     │     best.pt YOLOv12 Model        │                       │         │
+│  │     │  - Adenocarcinoma detection      │                       │         │
+│  │     │  - Large cell carcinoma          │                       │         │
+│  │     │  - Normal tissue                 │                       │         │
+│  │     │  - Squamous cell carcinoma       │                       │         │
+│  │     └──────────────────────────────────┘                       │         │
+│  └────────────────────────────────────────────────────────────────┘         │
+│                             │                                                │
+│                             ▼                                                │
+│  ┌────────────────────────────────────────────────────────────────┐         │
+│  │  4. Results Processing                                         │         │
+│  │     - Extract bounding boxes                                   │         │
+│  │     - Calculate confidence scores                              │         │
+│  │     - Determine risk level                                     │         │
+│  │     - Create annotated image                                   │         │
+│  └────────────────────────────────────────────────────────────────┘         │
+│                             │                                                │
+│                             ▼                                                │
+│  ┌────────────────────────────────────────────────────────────────┐         │
+│  │  5. JSON Response                                              │         │
+│  │     {                                                          │         │
+│  │       "scanId": "scan_abc123",                                 │         │
+│  │       "results": {                                             │         │
+│  │         "detected": true,                                      │         │
+│  │         "confidence": 0.87,                                    │         │
+│  │         "riskLevel": "high",                                   │         │
+│  │         "topClass": "adenocarcinoma",                          │         │
+│  │         "detections": [...]                                    │         │
+│  │       }                                                        │         │
+│  │     }                                                          │         │
+│  └────────────────────────────────────────────────────────────────┘         │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ Response with results
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ScanResults Component                                │
+│  - Display detection status                                                 │
+│  - Show confidence score                                                    │
+│  - Display risk level                                                       │
+│  - Show annotated image with bounding boxes                                 │
+│  - List detected cancer types                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              User sees results                               │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────┐           │
+│  │  Detection Found: YES                                        │           │
+│  │  Cancer Type: Adenocarcinoma                                 │           │
+│  │  Confidence: 87%                                             │           │
+│  │  Risk Level: HIGH                                            │           │
+│  │                                                              │           │
+│  │  [CT Scan Image with Bounding Boxes]                        │           │
+│  │                                                              │           │
+│  │  Recommendations:                                            │           │
+│  │  - Consult with oncologist                                  │           │
+│  │  - Schedule follow-up scans                                 │           │
+│  └──────────────────────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              RISK CLASSIFICATION
+═══════════════════════════════════════════════════════════════════════════════
+
+  ┌─────────────┬──────────────┬───────────────────────────────────────────┐
+  │ Risk Level  │ Confidence   │ Meaning                                   │
+  ├─────────────┼──────────────┼───────────────────────────────────────────┤
+  │ HIGH        │ ≥ 80%        │ Strong indication of cancer               │
+  │ MEDIUM      │ 50% - 80%    │ Moderate suspicion, further tests needed  │
+  │ LOW         │ 30% - 50%    │ Low suspicion, monitor closely            │
+  │ NONE        │ < 30%        │ Likely normal tissue                      │
+  └─────────────┴──────────────┴───────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                             CANCER TYPES DETECTED
+═══════════════════════════════════════════════════════════════════════════════
+
+  1. ADENOCARCINOMA
+     └─ Most common lung cancer type
+     └─ Starts in mucus-producing cells
+     └─ Usually found in outer lung areas
+
+  2. LARGE CELL CARCINOMA
+     └─ Fast-growing cancer
+     └─ Large, abnormal cells
+     └─ Can occur anywhere in lung
+
+  3. SQUAMOUS CELL CARCINOMA
+     └─ Starts in flat cells lining airways
+     └─ Often in central lung areas
+     └─ Linked to smoking
+
+  4. NORMAL
+     └─ Healthy lung tissue
+     └─ No cancer detected
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                               FILE STRUCTURE
+═══════════════════════════════════════════════════════════════════════════════
+
+  YOLO12ELCDPPCC-1/
+  │
+  ├── BACKEND FILES
+  │   ├── backend_server.py         ← FastAPI server
+  │   ├── start_backend.py          ← Startup script
+  │   ├── requirements.txt          ← Python dependencies
+  │   └── best.pt                   ← YOLOv12 model (5.3 MB)
+  │
+  ├── FRONTEND FILES
+  │   ├── src/
+  │   │   ├── services/yoloApi.js   ← API client
+  │   │   ├── components/
+  │   │   │   ├── ScanUpload.jsx    ← Upload UI
+  │   │   │   └── ScanResults.jsx   ← Results UI
+  │   │   └── PatientDashboard.jsx  ← Main dashboard
+  │   └── package.json              ← Node dependencies
+  │
+  ├── CONFIGURATION
+  │   └── .env                      ← Environment variables
+  │
+  └── DOCUMENTATION
+      ├── QUICKSTART.md             ← 5-minute guide
+      ├── BACKEND_INTEGRATION.md    ← Full documentation
+      ├── INTEGRATION_SUMMARY.md    ← Overview
+      └── INTEGRATION_DIAGRAM.txt   ← This file
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                             STARTUP COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+
+  TERMINAL 1 - Backend:
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ $ pip install -r requirements.txt                                │
+  │ $ python start_backend.py                                        │
+  │                                                                  │
+  │ Server running at http://localhost:8000                         │
+  └──────────────────────────────────────────────────────────────────┘
+
+  TERMINAL 2 - Frontend:
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ $ npm install                                                    │
+  │ $ npm start                                                      │
+  │                                                                  │
+  │ App running at http://localhost:3000                            │
+  └──────────────────────────────────────────────────────────────────┘
+
+  VERIFY:
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ $ curl http://localhost:8000/health                              │
+  │                                                                  │
+  │ {"status":"healthy","model_loaded":true}                        │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          ✅ INTEGRATION COMPLETE
+═══════════════════════════════════════════════════════════════════════════════

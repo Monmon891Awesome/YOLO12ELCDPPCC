@@ -81,28 +81,31 @@ def check_dependencies():
 
 def start_server():
     """Start the FastAPI server"""
+    # Get port from environment variable (Railway) or default to 8000
+    port = int(os.environ.get("PORT", 8000))
+
     print("\n" + "=" * 70)
     print("Starting LungEvity YOLOv12 Backend Server")
     print("=" * 70)
-    print("\nServer will be available at:")
-    print("  - Local:   http://localhost:8000")
-    print("  - Network: http://0.0.0.0:8000")
+    print(f"\nServer will be available at:")
+    print(f"  - Local:   http://localhost:{port}")
+    print(f"  - Network: http://0.0.0.0:{port}")
     print("\nAPI Documentation:")
-    print("  - Swagger UI: http://localhost:8000/docs")
-    print("  - ReDoc:      http://localhost:8000/redoc")
+    print(f"  - Swagger UI: http://localhost:{port}/docs")
+    print(f"  - ReDoc:      http://localhost:{port}/redoc")
     print("\nHealth Check:")
-    print("  - http://localhost:8000/health")
+    print(f"  - http://localhost:{port}/health")
     print("\nPress CTRL+C to stop the server")
     print("=" * 70 + "\n")
 
     try:
         # Start uvicorn server
+        # Remove --reload for production deployment
         subprocess.run([
             sys.executable, "-m", "uvicorn",
             "backend_server:app",
             "--host", "0.0.0.0",
-            "--port", "8000",
-            "--reload"
+            "--port", str(port)
         ])
     except KeyboardInterrupt:
         print("\n\nServer stopped by user")
