@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User,
   FileText,
@@ -17,7 +17,9 @@ import {
   AlertCircle,
   Info,
   Menu,
-  Search
+  Search,
+  Trash2,
+  Eye as EyeIcon
 } from 'lucide-react';
 import './Dashboard.css';
 import './PatientPlatformIntegration.css';
@@ -26,6 +28,16 @@ import './Platform.css'; // Import platform CSS
 import SimplifiedPatientPlatform from './SimplifiedPatientPlatform'; // Import the new component
 import ScanUpload from './components/ScanUpload';
 import ScanResults from './components/ScanResults';
+import {
+  getPatientProfile,
+  getScanHistory,
+  saveScan,
+  deleteScan,
+  getAppointments,
+  getDoctors,
+  getDashboardStats,
+  formatDate
+} from './utils/patientDataManager';
 
 const PatientDashboard = ({ username, onLogout }) => {
   const [activeTab, setActiveTab] = useState('home');
@@ -33,19 +45,44 @@ const PatientDashboard = ({ username, onLogout }) => {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
+  // Load persistent data
+  const [patientProfile, setPatientProfile] = useState(getPatientProfile());
+  const [scanHistory, setScanHistory] = useState(getScanHistory());
+  const [appointments, setAppointments] = useState(getAppointments());
+  const [doctors, setDoctors] = useState(getDoctors());
+  const [dashboardStats, setDashboardStats] = useState(getDashboardStats());
+
   // Scan upload and results state
   const [currentScanResult, setCurrentScanResult] = useState(null);
-  const [scanHistory, setScanHistory] = useState([]);
 
   // New state variables for drag and drop functionality
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [quickUploadSuccess, setQuickUploadSuccess] = useState(false);
 
+  // Load latest scan on mount
+  useEffect(() => {
+    const history = getScanHistory();
+    if (history.length > 0) {
+      setCurrentScanResult(history[0]);
+    }
+  }, []);
+
+  // Refresh dashboard stats when scan history changes
+  useEffect(() => {
+    setDashboardStats(getDashboardStats());
+  }, [scanHistory]);
+
   // Handle scan upload completion
   const handleScanComplete = (result) => {
     setCurrentScanResult(result);
-    setScanHistory([result, ...scanHistory]);
+
+    // Save to localStorage
+    saveScan(result);
+
+    // Refresh scan history
+    setScanHistory(getScanHistory());
+
     setUploadSuccess(true);
     // Auto-switch to results view
     setTimeout(() => setActiveTab('results'), 500);
@@ -55,34 +92,41 @@ const PatientDashboard = ({ username, onLogout }) => {
     console.error('Scan upload error:', error);
     alert(`Scan upload failed: ${error.message}`);
   };
-  
-  // Mock data for recent uploads
-  const recentUploads = [
-    { id: 1, name: 'CT Scan - Chest', date: 'May 2, 2025', status: 'Analyzed' },
-    { id: 2, name: 'CT Scan - Lungs', date: 'April 15, 2025', status: 'Pending Review' }
-  ];
-  
-  // Mock data for doctors
-  const availableDoctors = [
-    { id: 1, name: 'Dr. Sarah Miller', specialty: 'Pulmonology', availability: 'Available May 15-20', image: '/api/placeholder/60/60' },
-    { id: 2, name: 'Dr. James Rodriguez', specialty: 'Oncology', availability: 'Available May 12-18', image: '/api/placeholder/60/60' },
-    { id: 3, name: 'Dr. Emily Chen', specialty: 'Radiology', availability: 'Available May 10-16', image: '/api/placeholder/60/60' }
-  ];
-  
-  // Mock data for appointments
-  const appointments = [
-    { id: 1, doctor: 'Dr. Sarah Miller', type: 'Pulmonology Consultation', date: 'May 15, 2025', time: '10:30 AM - 11:30 AM' },
-    { id: 2, doctor: 'Dr. James Rodriguez', type: 'Follow-up CT Scan', date: 'June 2, 2025', time: '9:00 AM - 10:00 AM' }
-  ];
-  
-  // Mock patient data
-  const patientInfo = {
-    name: 'Robert Johnson',
-    id: 'PAT-2023-8642',
-    age: '54 years',
-    scanDate: 'May 3, 2025',
-    clinicalNotes: 'Patient presents with persistent cough for 3 months. Former smoker (2 packs/day for 20 years, quit 5 years ago). Family history of lung cancer.'
+
+  // Handle scan deletion
+  const handleDeleteScan = (scanId) => {
+    if (window.confirm('Are you sure you want to delete this scan?')) {
+      deleteScan(scanId);
+      setScanHistory(getScanHistory());
+
+      // If we're viewing the deleted scan, clear it
+      if (currentScanResult?.scanId === scanId) {
+        setCurrentScanResult(null);
+      }
+
+      alert('Scan deleted successfully!');
+    }
   };
+
+  // Handle viewing a specific scan
+  const handleViewScan = (scan) => {
+    setCurrentScanResult(scan);
+    setActiveTab('results');
+  };
+
+  // Real data from localStorage - convert to format expected by UI
+  const recentUploads = scanHistory.slice(0, 5).map(scan => ({
+    id: scan.scanId,
+    name: `CT Scan - ${formatDate(scan.uploadTime)}`,
+    date: formatDate(scan.uploadTime),
+    status: 'Analyzed',
+    riskLevel: scan.results?.riskLevel || 'none',
+    detected: scan.results?.detected || false,
+    scanData: scan
+  }));
+
+  // Use doctors from localStorage
+  const availableDoctors = doctors;
   
   // New handlers for drag and drop functionality
   const handleDragEnter = (e) => {
@@ -642,34 +686,50 @@ const PatientDashboard = ({ username, onLogout }) => {
           {activeTab === 'history' && (
             <>
               <div className="page-subheader">
-                <p>View and manage your uploaded CT scans and results.</p>
+                <p>View and manage your uploaded CT scans and results. Total scans: {scanHistory.length}</p>
               </div>
-              
-              {recentUploads.length > 0 ? (
+
+              {scanHistory.length > 0 ? (
                 <div className="uploads-table-container">
                   <table className="uploads-table">
                     <thead>
                       <tr>
-                        <th>Scan Name</th>
-                        <th>Upload Date</th>
-                        <th>Status</th>
+                        <th>Scan Date</th>
+                        <th>Risk Level</th>
+                        <th>Detection</th>
+                        <th>Confidence</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recentUploads.map(upload => (
-                        <tr key={upload.id}>
-                          <td>{upload.name}</td>
-                          <td>{upload.date}</td>
+                      {scanHistory.map(scan => (
+                        <tr key={scan.scanId}>
+                          <td>{formatDate(scan.uploadTime)}</td>
                           <td>
-                            <span className={`status-badge ${upload.status === 'Analyzed' ? 'success' : 'pending'}`}>
-                              {upload.status}
+                            <span className={`status-badge risk-${scan.results?.riskLevel || 'none'}`}>
+                              {(scan.results?.riskLevel || 'none').toUpperCase()}
                             </span>
                           </td>
+                          <td>{scan.results?.detected ? 'Yes' : 'No'}</td>
+                          <td>{((scan.results?.confidence || 0) * 100).toFixed(1)}%</td>
                           <td>
                             <div className="table-actions">
-                              <button className="table-action-button" type="button">View Results</button>
-                              <button className="table-action-button" type="button">Download</button>
+                              <button
+                                className="table-action-button view"
+                                onClick={() => handleViewScan(scan)}
+                                type="button"
+                                title="View Results"
+                              >
+                                <EyeIcon size={16} /> View
+                              </button>
+                              <button
+                                className="table-action-button delete"
+                                onClick={() => handleDeleteScan(scan.scanId)}
+                                type="button"
+                                title="Delete Scan"
+                              >
+                                <Trash2 size={16} /> Delete
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -682,12 +742,12 @@ const PatientDashboard = ({ username, onLogout }) => {
                   <FileText className="no-data-icon" />
                   <h3>No Uploads Yet</h3>
                   <p>You haven't uploaded any CT scans yet. Upload a scan to get started.</p>
-                  <button 
+                  <button
                     className="action-button"
-                    onClick={() => setShowUploadModal(true)}
+                    onClick={() => setActiveTab('home')}
                     type="button"
                   >
-                    Upload CT Scan
+                    Go to Home to Upload
                   </button>
                 </div>
               )}

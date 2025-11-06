@@ -1,0 +1,21 @@
+# Backend Requirements for YOLOv12 Lung Cancer Detection API
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# YOLO Model
+ultralytics>=8.0.227
+
+# Image Processing
+opencv-python>=4.8.0
+pillow>=10.2.0
+numpy>=1.24.0
+
+# Medical Image Support (DICOM)
+pydicom>=2.4.0
+
+# Optional but recommended
+python-dotenv>=1.0.0

@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, Info, Download, Share2, Eye } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Info, Download, Share2, Eye, Mail } from 'lucide-react';
 import './ScanResults.css';
+import { generatePDFReport, generateJSONReport } from '../utils/pdfReportGenerator';
+import { shareWithDoctor, copyShareableLink } from '../utils/emailService';
+import { getPatientProfile, getDoctors } from '../utils/patientDataManager';
 
 const ScanResults = ({ scanData }) => {
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   if (!scanData || !scanData.results) {
     return null;
   }
+
+  const patientProfile = getPatientProfile();
+  const doctors = getDoctors();
 
   const { results, metadata, uploadTime, scanId } = scanData;
   const { detected, confidence, riskLevel, detections } = results;
@@ -37,25 +47,64 @@ const ScanResults = ({ scanData }) => {
     }
   };
 
-  const handleDownloadReport = () => {
-    // Create a downloadable report
-    const reportData = {
-      scanId,
-      uploadTime,
-      detected,
-      confidence,
-      riskLevel,
-      detections,
-      metadata
-    };
+  const handleDownloadPDF = async () => {
+    try {
+      await generatePDFReport(scanData, patientProfile);
+      alert('PDF report downloaded successfully!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF report. Please try again.');
+    }
+  };
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `scan-report-${scanId}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadJSON = () => {
+    try {
+      generateJSONReport(scanData, patientProfile);
+    } catch (error) {
+      console.error('Error generating JSON:', error);
+      alert('Failed to generate JSON report. Please try again.');
+    }
+  };
+
+  const handleShareWithDoctor = () => {
+    setShowShareModal(true);
+    setShareSuccess(false);
+  };
+
+  const handleShareSubmit = async () => {
+    if (!selectedDoctor) {
+      alert('Please select a doctor to share with.');
+      return;
+    }
+
+    setShareLoading(true);
+
+    try {
+      const doctor = doctors.find(d => d.id === selectedDoctor);
+      if (doctor) {
+        shareWithDoctor(scanData, patientProfile, doctor.email, doctor.name);
+        setShareSuccess(true);
+        setTimeout(() => {
+          setShowShareModal(false);
+          setShareSuccess(false);
+          setSelectedDoctor('');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error sharing report:', error);
+      alert('Failed to share report. Please try again.');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const result = await copyShareableLink(scanId);
+    if (result.success) {
+      alert('Link copied to clipboard!');
+    } else {
+      alert('Failed to copy link. Please try again.');
+    }
   };
 
   return (
@@ -64,11 +113,15 @@ const ScanResults = ({ scanData }) => {
       <div className="results-header">
         <h2>Scan Analysis Results</h2>
         <div className="results-actions">
-          <button className="action-button" onClick={handleDownloadReport} type="button">
+          <button className="action-button" onClick={handleDownloadPDF} type="button">
             <Download size={18} />
-            Download Report
+            Download PDF
           </button>
-          <button className="action-button" type="button">
+          <button className="action-button secondary" onClick={handleDownloadJSON} type="button">
+            <Download size={18} />
+            JSON
+          </button>
+          <button className="action-button" onClick={handleShareWithDoctor} type="button">
             <Share2 size={18} />
             Share with Doctor
           </button>
@@ -237,6 +290,92 @@ const ScanResults = ({ scanData }) => {
           professional for proper diagnosis and treatment recommendations.
         </p>
       </div>
+
+      {/* Share with Doctor Modal */}
+      {showShareModal && (
+        <div className="modal-overlay" onClick={() => !shareLoading && setShowShareModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Share Results with Doctor</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowShareModal(false)}
+                disabled={shareLoading}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {shareSuccess ? (
+                <div className="success-message">
+                  <CheckCircle size={48} color="#4caf50" />
+                  <h4>Report Shared Successfully!</h4>
+                  <p>Your email client has been opened with the report details.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="modal-description">
+                    Select a doctor to share your scan results with. This will open your email client
+                    with a pre-filled message containing your scan details.
+                  </p>
+
+                  <div className="form-group">
+                    <label htmlFor="doctor-select">Select Doctor:</label>
+                    <select
+                      id="doctor-select"
+                      value={selectedDoctor}
+                      onChange={(e) => setSelectedDoctor(e.target.value)}
+                      className="form-select"
+                      disabled={shareLoading}
+                    >
+                      <option value="">Choose a doctor...</option>
+                      {doctors.map((doctor) => (
+                        <option key={doctor.id} value={doctor.id}>
+                          {doctor.name} - {doctor.specialty}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="share-options">
+                    <p className="share-options-label">Alternative sharing options:</p>
+                    <button
+                      className="share-option-button"
+                      onClick={handleCopyLink}
+                      type="button"
+                      disabled={shareLoading}
+                    >
+                      <Mail size={16} />
+                      Copy Shareable Link
+                    </button>
+                  </div>
+
+                  <div className="modal-actions">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowShareModal(false)}
+                      disabled={shareLoading}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary"
+                      onClick={handleShareSubmit}
+                      disabled={shareLoading || !selectedDoctor}
+                      type="button"
+                    >
+                      {shareLoading ? 'Sharing...' : 'Share via Email'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
