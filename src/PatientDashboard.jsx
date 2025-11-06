@@ -409,19 +409,23 @@ const PatientDashboard = ({ username, onLogout }) => {
                   <h3>Your Upcoming Appointments</h3>
                   <div className="card-content">
                     {appointments.length > 0 ? (
-                      appointments.map(appointment => (
-                        <div className="appointment-item" key={appointment.id}>
-                          <div className="appointment-date">
-                            <span className="month">{appointment.date.split(' ')[0]}</span>
-                            <span className="day">{appointment.date.split(' ')[1].replace(',', '')}</span>
+                      appointments.map(appointment => {
+                        const formattedDate = formatDate(appointment.date);
+                        const dateParts = formattedDate.split(' ');
+                        return (
+                          <div className="appointment-item" key={appointment.id}>
+                            <div className="appointment-date">
+                              <span className="month">{dateParts[0]}</span>
+                              <span className="day">{dateParts[1] ? dateParts[1].replace(',', '') : ''}</span>
+                            </div>
+                            <div className="appointment-details">
+                              <h4>{appointment.doctor}</h4>
+                              <p>{appointment.type}</p>
+                              <p>{appointment.time}</p>
+                            </div>
                           </div>
-                          <div className="appointment-details">
-                            <h4>{appointment.doctor}</h4>
-                            <p>{appointment.type}</p>
-                            <p>{appointment.time}</p>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <p className="no-data-message">No upcoming appointments scheduled.</p>
                     )}
@@ -516,23 +520,27 @@ const PatientDashboard = ({ username, onLogout }) => {
                 <h3>Your Scheduled Appointments</h3>
                 <div className="appointments-list">
                   {appointments.length > 0 ? (
-                    appointments.map(appointment => (
-                      <div className="appointment-list-item" key={appointment.id}>
-                        <div className="appointment-list-date">
-                          <span className="month">{appointment.date.split(' ')[0]}</span>
-                          <span className="day">{appointment.date.split(' ')[1].replace(',', '')}</span>
+                    appointments.map(appointment => {
+                      const formattedDate = formatDate(appointment.date);
+                      const dateParts = formattedDate.split(' ');
+                      return (
+                        <div className="appointment-list-item" key={appointment.id}>
+                          <div className="appointment-list-date">
+                            <span className="month">{dateParts[0]}</span>
+                            <span className="day">{dateParts[1] ? dateParts[1].replace(',', '') : ''}</span>
+                          </div>
+                          <div className="appointment-list-details">
+                            <h4>{appointment.doctor}</h4>
+                            <p>{appointment.type}</p>
+                            <p>{appointment.time}</p>
+                          </div>
+                          <div className="appointment-list-actions">
+                            <button className="reschedule-button" type="button">Reschedule</button>
+                            <button className="cancel-button" type="button">Cancel</button>
+                          </div>
                         </div>
-                        <div className="appointment-list-details">
-                          <h4>{appointment.doctor}</h4>
-                          <p>{appointment.type}</p>
-                          <p>{appointment.time}</p>
-                        </div>
-                        <div className="appointment-list-actions">
-                          <button className="reschedule-button" type="button">Reschedule</button>
-                          <button className="cancel-button" type="button">Cancel</button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <p className="no-data-message">No appointments scheduled.</p>
                   )}
@@ -546,81 +554,174 @@ const PatientDashboard = ({ username, onLogout }) => {
               <div className="page-subheader">
                 <p>View and analyze your CT scan results with our AI-powered platform.</p>
               </div>
-              
-              <div className="scan-grid">
-                {/* Scan Viewer */}
-                <div className="scan-viewer">
-                  <img 
-                    src="/api/placeholder/400/400" 
-                    alt="CT Scan" 
-                    className="scan-image" 
-                  />
-                </div>
-                
-                {/* Analysis Results */}
-                <div className="analysis-container">
-                  <h4 className="analysis-title">AI Analysis Results</h4>
-                  
-                  <div className="analysis-content">
-                    <div className="analysis-section">
-                      <div className="probability-header">
-                        <span className="probability-label">Cancer Probability</span>
-                        <span className="probability-value">68%</span>
-                      </div>
-                      <div className="progress-container">
-                        <div className="progress-bar" style={{width: '68%'}}></div>
+
+              {currentScanResult ? (
+                <>
+                  <div className="scan-grid">
+                    {/* Scan Viewer */}
+                    <div className="scan-viewer">
+                      <img
+                        src={currentScanResult.results.annotatedImageUrl || currentScanResult.results.imageUrl}
+                        alt="CT Scan"
+                        className="scan-image"
+                        onError={(e) => {
+                          e.target.src = '/api/placeholder/400/400';
+                        }}
+                      />
+                      <div className="scan-image-info">
+                        <p className="scan-date">Uploaded: {formatDate(currentScanResult.uploadTime)}</p>
                       </div>
                     </div>
-                    
-                    <div className="section-divider">
-                      <h5 className="section-subtitle">Detected Abnormalities</h5>
-                      <ul className="abnormality-list">
-                        <li className="abnormality-item">
-                          <ChevronRight className="abnormality-icon icon-sm" />
-                          <div className="abnormality-content">
-                            <p className="abnormality-title">Nodule detected in right upper lobe</p>
-                            <p className="abnormality-details">Size: 1.8cm x 1.4cm, Irregular borders</p>
+
+                    {/* Analysis Results */}
+                    <div className="analysis-container">
+                      <h4 className="analysis-title">AI Analysis Results</h4>
+
+                      <div className="analysis-content">
+                        <div className="analysis-section">
+                          <div className="probability-header">
+                            <span className="probability-label">Cancer Probability</span>
+                            <span className="probability-value" style={{
+                              color: currentScanResult.results.riskLevel === 'high' ? '#ef4444' :
+                                     currentScanResult.results.riskLevel === 'medium' ? '#f97316' :
+                                     currentScanResult.results.riskLevel === 'low' ? '#eab308' : '#22c55e'
+                            }}>
+                              {(currentScanResult.results.confidence * 100).toFixed(0)}%
+                            </span>
                           </div>
-                        </li>
-                        <li className="abnormality-item">
-                          <ChevronRight className="abnormality-icon warning icon-sm" />
-                          <div className="abnormality-content">
-                            <p className="abnormality-title">Ground-glass opacity</p>
-                            <p className="abnormality-details">Left lower lobe, 4.2mm diameter</p>
+                          <div className="progress-container">
+                            <div
+                              className="progress-bar"
+                              style={{
+                                width: `${currentScanResult.results.confidence * 100}%`,
+                                backgroundColor: currentScanResult.results.riskLevel === 'high' ? '#ef4444' :
+                                               currentScanResult.results.riskLevel === 'medium' ? '#f97316' :
+                                               currentScanResult.results.riskLevel === 'low' ? '#eab308' : '#22c55e'
+                              }}
+                            ></div>
                           </div>
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    <div className="section-divider">
-                      <h5 className="section-subtitle">Recommended Actions</h5>
-                      <ul className="action-list">
-                        <li className="action-item">
-                          <Activity className="action-icon icon-sm" />
-                          Schedule follow-up scan in 30 days
-                        </li>
-                        <li className="action-item">
-                          <Activity className="action-icon icon-sm" />
-                          Consider biopsy of right upper lobe nodule
-                        </li>
-                        <li className="action-item">
-                          <Activity className="action-icon icon-sm" />
-                          Refer to pulmonary specialist
-                        </li>
-                      </ul>
+                          <div className="risk-badge-container">
+                            <span className={`risk-badge-large risk-${currentScanResult.results.riskLevel}`}>
+                              {currentScanResult.results.riskLevel.toUpperCase()} RISK
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="section-divider">
+                          <h5 className="section-subtitle">Detected Abnormalities</h5>
+                          {currentScanResult.results.detections && currentScanResult.results.detections.length > 0 ? (
+                            <ul className="abnormality-list">
+                              {currentScanResult.results.detections.map((detection, idx) => (
+                                <li className="abnormality-item" key={idx}>
+                                  <ChevronRight className="abnormality-icon icon-sm" />
+                                  <div className="abnormality-content">
+                                    <p className="abnormality-title">
+                                      {detection.class.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} detected
+                                    </p>
+                                    <p className="abnormality-details">
+                                      Confidence: {(detection.confidence * 100).toFixed(1)}%
+                                      {detection.characteristics && `, Size: ${detection.characteristics.size_mm}mm, ${detection.characteristics.shape}`}
+                                    </p>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="no-detections">No abnormalities detected in this scan.</p>
+                          )}
+                        </div>
+
+                        <div className="section-divider">
+                          <h5 className="section-subtitle">Recommended Actions</h5>
+                          <ul className="action-list">
+                            {currentScanResult.results.riskLevel === 'high' && (
+                              <>
+                                <li className="action-item">
+                                  <Activity className="action-icon icon-sm" />
+                                  Schedule immediate consultation with oncologist
+                                </li>
+                                <li className="action-item">
+                                  <Activity className="action-icon icon-sm" />
+                                  Consider biopsy for definitive diagnosis
+                                </li>
+                              </>
+                            )}
+                            {currentScanResult.results.riskLevel === 'medium' && (
+                              <>
+                                <li className="action-item">
+                                  <Activity className="action-icon icon-sm" />
+                                  Schedule follow-up scan in 30 days
+                                </li>
+                                <li className="action-item">
+                                  <Activity className="action-icon icon-sm" />
+                                  Consult with pulmonary specialist
+                                </li>
+                              </>
+                            )}
+                            {currentScanResult.results.riskLevel === 'low' && (
+                              <>
+                                <li className="action-item">
+                                  <Activity className="action-icon icon-sm" />
+                                  Schedule routine follow-up in 6 months
+                                </li>
+                                <li className="action-item">
+                                  <Activity className="action-icon icon-sm" />
+                                  Maintain regular health monitoring
+                                </li>
+                              </>
+                            )}
+                            {currentScanResult.results.riskLevel === 'none' && (
+                              <li className="action-item">
+                                <Activity className="action-icon icon-sm" />
+                                Continue with routine annual checkups
+                              </li>
+                            )}
+                            <li className="action-item">
+                              <Activity className="action-icon icon-sm" />
+                              Share results with your primary care physician
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="analysis-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={() => {
+                            // Download detailed report
+                            const report = JSON.stringify(currentScanResult, null, 2);
+                            const blob = new Blob([report], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `scan-report-${currentScanResult.scanId}.json`;
+                            a.click();
+                          }}
+                        >
+                          View Detailed Report
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => setActiveTab('contact')}
+                        >
+                          Consult Doctor
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="analysis-actions">
-                    <button type="button" className="primary-button">
-                      View Detailed Report
-                    </button>
-                    <button type="button" className="secondary-button">
-                      Consult Doctor
-                    </button>
-                  </div>
+                </>
+              ) : (
+                <div className="no-results-message">
+                  <AlertCircle size={48} color="#999" />
+                  <h3>No Scan Results Available</h3>
+                  <p>Upload a CT scan from the Home tab to view analysis results here.</p>
+                  <button onClick={() => setActiveTab('home')} type="button" className="action-button">
+                    Go to Upload
+                  </button>
                 </div>
-              </div>
+              )}
               
               <div className="patient-info">
                 <h4 className="patient-title">Your Information</h4>

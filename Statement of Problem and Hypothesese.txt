@@ -1,0 +1,226 @@
+STATEMENT OF PROBLEM AND HYPOTHESES
+LungEvity: YOLOv12-Powered Lung Cancer Detection Platform
+================================================================================
+
+1. BACKGROUND OF THE STUDY
+--------------------------------------------------------------------------------
+Lung cancer remains one of the leading causes of cancer-related deaths globally,
+with approximately 2.2 million new cases diagnosed annually. Early detection is
+critical, as the 5-year survival rate for stage I lung cancer is approximately
+60-70%, compared to less than 10% for stage IV. However, current diagnostic
+methods face several challenges:
+
+- Manual CT scan interpretation is time-consuming and subject to human error
+- Radiologist workload continues to increase, leading to potential oversights
+- Access to specialized radiologists is limited in rural and underserved areas
+- Delayed diagnosis results in lower survival rates and increased treatment costs
+- Patient-physician communication regarding scan results is often inefficient
+
+The integration of artificial intelligence (AI) in medical imaging has shown
+promising results in improving diagnostic accuracy and efficiency. Deep learning
+models, particularly You Only Look Once (YOLO) architectures, have demonstrated
+superior performance in real-time object detection tasks.
+
+
+2. STATEMENT OF THE PROBLEM
+--------------------------------------------------------------------------------
+Despite advancements in medical imaging technology, three critical problems persist
+in lung cancer detection and patient care management:
+
+PROBLEM 1: Diagnostic Inefficiency
+- Manual interpretation of CT scans is time-intensive (15-30 minutes per case)
+- High inter-observer variability among radiologists (10-15% disagreement rate)
+- Limited availability of specialized thoracic radiologists
+- Delayed reporting leads to treatment postponement
+
+PROBLEM 2: Detection Accuracy Limitations
+- Small nodules (<5mm) are frequently missed in manual reviews
+- Early-stage cancers may be misclassified as benign lesions
+- Multiple cancer subtypes (adenocarcinoma, squamous cell carcinoma, large cell
+  carcinoma) require specialized expertise for accurate classification
+- False positive rates remain high (20-30%), leading to unnecessary procedures
+
+PROBLEM 3: Patient-Physician Communication Gap
+- Patients lack immediate access to their scan results
+- Complex medical terminology creates barriers to understanding
+- Limited platforms for secure patient-physician consultation
+- No centralized system for tracking scan history and follow-ups
+
+
+3. OBJECTIVES OF THE STUDY
+--------------------------------------------------------------------------------
+GENERAL OBJECTIVE:
+To develop and implement an AI-powered web-based platform for automated lung
+cancer detection using YOLOv12 deep learning architecture, integrated with a
+comprehensive patient-physician collaborative care system.
+
+SPECIFIC OBJECTIVES:
+1. To train and optimize a YOLOv12 model for detecting and classifying lung
+   cancer subtypes (adenocarcinoma, squamous cell carcinoma, large cell carcinoma)
+   from CT scan images
+
+2. To develop a responsive web-based user interface that allows patients to upload
+   CT scans and receive AI-powered analysis results in real-time
+
+3. To implement a secure patient dashboard that displays:
+   - AI-generated risk assessments (high, medium, low, none)
+   - Detected abnormalities with bounding box visualizations
+   - Confidence scores and recommended clinical actions
+   - Historical scan records and trend analysis
+
+4. To create a patient-physician communication platform that enables:
+   - Secure sharing of scan results with healthcare providers
+   - Appointment scheduling with specialists
+   - Direct messaging between patients and doctors
+   - Centralized medical record management
+
+5. To evaluate the system's performance in terms of:
+   - Detection accuracy (precision, recall, F1-score)
+   - Processing speed (inference time per scan)
+   - User experience and satisfaction
+   - Clinical utility and integration feasibility
+
+
+4. RESEARCH QUESTIONS
+--------------------------------------------------------------------------------
+RQ1: How accurately can a YOLOv12-based deep learning model detect and classify
+     different lung cancer subtypes from CT scan images compared to traditional
+     manual interpretation methods?
+
+RQ2: What is the optimal configuration of YOLOv12 architecture (model size,
+     confidence threshold, image preprocessing techniques) for achieving the
+     highest detection accuracy while maintaining real-time processing speed?
+
+RQ3: How does the integration of AI-powered analysis with a patient-physician
+     communication platform impact the efficiency of diagnosis-to-treatment
+     timeline compared to conventional workflows?
+
+RQ4: What are the key factors affecting user acceptance and trust in AI-assisted
+     diagnostic tools among both patients and healthcare providers?
+
+RQ5: How can the system be designed to ensure data privacy, security, and
+     compliance with healthcare regulations (HIPAA, GDPR)?
+
+
+5. HYPOTHESES
+--------------------------------------------------------------------------------
+H1 (Primary Hypothesis):
+The YOLOv12-powered lung cancer detection system will achieve a detection accuracy
+of e90% for identifying malignant lung nodules, with a false positive rate of
+d15%, which is comparable to or better than expert radiologist performance.
+
+H1a: The system will correctly classify lung cancer subtypes (adenocarcinoma,
+     squamous cell carcinoma) with e85% accuracy.
+
+H1b: The average processing time per CT scan will be d10 seconds, significantly
+     faster than manual interpretation (15-30 minutes).
+
+
+H2 (Secondary Hypothesis):
+Integration of AI-powered analysis with a patient-physician communication platform
+will reduce the diagnosis-to-treatment initiation time by at least 30% compared
+to traditional workflows.
+
+H2a: Patients will receive preliminary scan results within 24 hours of upload,
+     compared to the current average of 3-7 days.
+
+H2b: The platform will facilitate at least 40% more patient-physician interactions
+     regarding scan results compared to conventional phone/email communication.
+
+
+H3 (Tertiary Hypothesis):
+Patients using the LungEvity platform will demonstrate significantly higher
+satisfaction scores (e80% positive feedback) regarding:
+- Understanding of their diagnosis
+- Confidence in the results
+- Ease of communication with healthcare providers
+- Overall care experience
+
+
+H4 (Null Hypothesis):
+There will be no statistically significant difference in diagnostic accuracy
+between the AI-powered system and expert radiologist interpretation for lung
+cancer detection.
+
+
+6. SIGNIFICANCE OF THE STUDY
+--------------------------------------------------------------------------------
+THEORETICAL SIGNIFICANCE:
+- Contributes to the growing body of research on AI applications in medical imaging
+- Demonstrates the practical implementation of YOLOv12 architecture for healthcare
+- Provides insights into human-AI collaboration in clinical decision-making
+- Explores the intersection of deep learning, web development, and telemedicine
+
+PRACTICAL SIGNIFICANCE:
+- Reduces radiologist workload and mitigates burnout in high-volume clinical settings
+- Improves access to specialized diagnostic expertise in underserved areas
+- Enables earlier detection of lung cancer, potentially improving survival rates
+- Facilitates more efficient patient-physician communication and care coordination
+- Provides a scalable, cost-effective solution for healthcare systems globally
+
+SOCIAL SIGNIFICANCE:
+- Empowers patients with timely access to their medical information
+- Reduces health disparities by democratizing access to advanced diagnostic tools
+- Alleviates anxiety through faster result delivery and clearer communication
+- Supports informed decision-making through AI-augmented insights
+
+ECONOMIC SIGNIFICANCE:
+- Reduces healthcare costs associated with delayed diagnosis and late-stage treatment
+- Optimizes resource allocation by prioritizing high-risk cases
+- Minimizes unnecessary biopsies and procedures caused by false positives
+- Potential to save healthcare systems billions in annual expenditure
+
+
+7. SCOPE OF APPLICATION
+--------------------------------------------------------------------------------
+This study focuses on:
+- Lung cancer detection from chest CT scan images (DICOM, JPEG, PNG formats)
+- Classification of three primary subtypes: adenocarcinoma, squamous cell
+  carcinoma, and normal tissue
+- Web-based platform deployment accessible via standard browsers
+- Patient and physician user roles with differentiated access levels
+- Integration with existing medical imaging workflows
+
+The findings will be applicable to:
+- Hospitals and diagnostic centers seeking to augment radiologist capabilities
+- Telemedicine platforms requiring AI-powered diagnostic support
+- Research institutions studying AI in healthcare
+- Healthcare policymakers evaluating technology adoption strategies
+- Medical education programs incorporating AI literacy
+
+
+8. DEFINITION OF TERMS
+--------------------------------------------------------------------------------
+Adenocarcinoma: A type of lung cancer that begins in mucus-secreting glands,
+typically found in the outer regions of the lungs.
+
+Squamous Cell Carcinoma: Lung cancer arising from the flat cells lining the
+airways, often associated with smoking history.
+
+YOLOv12: The 12th iteration of the You Only Look Once deep learning architecture,
+optimized for real-time object detection with improved accuracy and speed.
+
+CT Scan (Computed Tomography): A medical imaging technique using X-rays to create
+detailed cross-sectional images of the body.
+
+Confidence Score: A numerical value (0-1) representing the AI model's certainty
+in its prediction.
+
+Risk Level: A categorical assessment (high, medium, low, none) indicating the
+likelihood of malignancy based on AI analysis.
+
+False Positive: A case where the system incorrectly identifies a benign finding
+as malignant.
+
+False Negative: A case where the system fails to detect an actual malignant lesion.
+
+Precision: The ratio of true positive detections to all positive predictions.
+
+Recall (Sensitivity): The ratio of true positive detections to all actual
+positive cases.
+
+DICOM (Digital Imaging and Communications in Medicine): The international standard
+format for medical imaging data.
+
+HIPAA (Health Insurance Portability and Accountability Act): U.S. legislation
+governing the privacy and security of health information.

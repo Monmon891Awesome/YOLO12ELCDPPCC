@@ -1,0 +1,376 @@
+SCOPE AND LIMITATIONS OF THE STUDY
+LungEvity: YOLOv12-Powered Lung Cancer Detection Platform
+================================================================================
+
+1. SCOPE OF THE STUDY
+--------------------------------------------------------------------------------
+
+1.1 GEOGRAPHICAL SCOPE
+The LungEvity platform is designed as a web-based application accessible globally
+via internet connection. Initial deployment and testing are conducted within:
+- Development environment: Local and cloud-based (Railway, Vercel)
+- Target implementation: Healthcare facilities with internet infrastructure
+- Accessibility: Desktop and mobile devices with modern web browsers
+
+1.2 TEMPORAL SCOPE
+Study Duration: [Academic Year 2024-2025]
+- Phase 1 (Months 1-3): Literature review, model training, initial development
+- Phase 2 (Months 4-6): Platform development, integration, testing
+- Phase 3 (Months 7-8): User testing, evaluation, refinement
+- Phase 4 (Month 9): Documentation, final presentation
+
+1.3 TECHNICAL SCOPE
+
+1.3.1 AI/Machine Learning Components:
+ Deep Learning Framework: Ultralytics YOLOv12
+ Model Training: Supervised learning on labeled CT scan dataset
+ Cancer Types Detected:
+  - Adenocarcinoma (glandular lung cancer)
+  - Squamous Cell Carcinoma (flat cell lung cancer)
+  - Large Cell Carcinoma (undifferentiated cancer)
+  - Normal tissue (non-cancerous)
+
+ Image Processing:
+  - Supported formats: DICOM (.dcm), JPEG (.jpg), PNG (.png), NIFTI (.nii)
+  - Maximum file size: 100MB per upload
+  - Image preprocessing: Normalization, resizing, enhancement
+  - Output: Annotated images with bounding boxes, confidence scores
+
+ Detection Features:
+  - Real-time object detection and classification
+  - Confidence threshold: 25% (configurable)
+  - Risk level categorization: High, Medium, Low, None
+  - Bounding box visualization with class labels
+  - Characteristics analysis: Size, shape, density estimation
+
+1.3.2 Web Application Components:
+
+FRONTEND (React 18.2.0):
+ User Interfaces:
+  - Landing page with platform overview
+  - Patient registration and authentication
+  - Patient dashboard with scan upload functionality
+  - Admin dashboard for healthcare providers
+  - CT scan analysis view with AI results
+  - Communication platform for patient-doctor interaction
+
+ Key Features:
+  - Responsive design (mobile, tablet, desktop)
+  - Real-time scan upload with progress tracking
+  - Interactive scan result visualization
+  - Historical scan record management
+  - Appointment scheduling interface
+  - Secure messaging system
+
+BACKEND (FastAPI + Python):
+ API Endpoints:
+  - POST /api/v1/scan/analyze - Single scan analysis
+  - POST /api/v1/scan/batch-analyze - Multiple scan processing
+  - GET /api/v1/scan/{scanId} - Retrieve scan results
+  - GET /api/v1/scan/{scanId}/image - Get original scan image
+  - GET /api/v1/scan/{scanId}/annotated - Get annotated image
+  - GET /api/v1/patient/{patientId}/scans - Patient scan history
+  - GET /api/v1/config/thresholds - Detection thresholds
+  - GET /health - API health check
+
+ Infrastructure:
+  - RESTful API architecture
+  - CORS-enabled for frontend integration
+  - Real-time processing (5-10 seconds per scan)
+  - In-memory data storage (development phase)
+  - Cloud deployment support (Railway, AWS, GCP)
+
+1.3.3 Security and Compliance:
+ Input Validation: File type, size, format verification
+ Data Sanitization: XSS prevention, SQL injection protection
+ Encryption: Data in transit (HTTPS planned for production)
+ Privacy: Patient data anonymization capabilities
+ Authentication: User login system (expandable to JWT)
+
+1.4 FUNCTIONAL SCOPE
+
+1.4.1 Patient Features:
+ Account registration and secure login
+ CT scan upload (drag-and-drop or file browser)
+ Real-time AI analysis with progress tracking
+ Detailed result viewing:
+  - Cancer probability percentage
+  - Risk level indicators
+  - Detected abnormalities list
+  - Recommended clinical actions
+  - Annotated scan images with bounding boxes
+ Scan history management
+ Report download (JSON format, PDF planned)
+ Doctor appointment scheduling
+ Secure messaging with healthcare providers
+
+1.4.2 Healthcare Provider Features:
+ Admin dashboard access
+ Patient scan review interface
+ Diagnostic result verification
+ Patient management system
+ Communication platform for consultations
+
+1.5 ANALYTICAL SCOPE
+
+Performance Metrics Evaluated:
+ Detection Accuracy: Precision, Recall, F1-Score
+ Processing Speed: Inference time per scan
+ System Reliability: Uptime, error rates
+ User Experience: Interface usability, satisfaction scores
+ Clinical Utility: Diagnostic concordance with radiologists
+
+
+2. LIMITATIONS OF THE STUDY
+--------------------------------------------------------------------------------
+
+2.1 DATA-RELATED LIMITATIONS
+
+L1: Dataset Size and Diversity
+- The YOLOv12 model is trained on a finite dataset which may not represent all
+  possible lung cancer presentations
+- Geographic and demographic diversity of training data may be limited
+- Rare cancer subtypes or atypical presentations may have insufficient training
+  examples
+- Impact: Potential for reduced accuracy on edge cases or underrepresented populations
+
+L2: Image Quality Dependencies
+- Performance is contingent on CT scan quality (resolution, contrast, artifacts)
+- Low-quality or corrupted images may yield unreliable results
+- Variation in scanning protocols across different machines affects consistency
+- Impact: Results may vary based on imaging equipment and techniques used
+
+L3: Annotation Accuracy
+- Training data relies on human-annotated labels which may contain errors
+- Inter-annotator variability can introduce inconsistencies
+- Ground truth verification limited by available pathology confirmation
+- Impact: Model may perpetuate or amplify human labeling errors
+
+2.2 TECHNICAL LIMITATIONS
+
+L4: Model Architecture Constraints
+- YOLOv12 is optimized for speed but may sacrifice some accuracy vs. slower models
+- Single-stage detection may miss very small nodules (<3mm)
+- 2D image analysis does not fully utilize 3D spatial information from CT volumes
+- Impact: Possible false negatives for early-stage, subtle lesions
+
+L5: Classification Scope
+- Limited to three primary cancer types plus normal tissue
+- Does not detect benign conditions (infections, inflammation, fibrosis)
+- Cannot differentiate between primary lung cancer and metastases
+- No staging information (Stage I-IV) provided
+- Impact: Clinical interpretation still requires radiologist expertise
+
+L6: Processing Limitations
+- Maximum file size restriction (100MB) may exclude high-resolution scans
+- Batch processing limited to prevent server overload
+- Real-time processing requires adequate computational resources (GPU preferred)
+- Impact: Scalability concerns for high-volume clinical settings
+
+L7: Integration Challenges
+- Current implementation lacks integration with Picture Archiving and
+  Communication Systems (PACS)
+- No direct interface with Electronic Health Records (EHR)
+- Manual file upload required (no automated workflow)
+- Impact: Additional steps needed for clinical adoption
+
+2.3 FUNCTIONAL LIMITATIONS
+
+L8: Authentication and Authorization
+- Current authentication is mock/basic (not production-grade)
+- No multi-factor authentication (MFA)
+- Role-based access control (RBAC) is simplified
+- No integration with existing hospital identity management systems
+- Impact: Security enhancements needed before clinical deployment
+
+L9: Data Persistence
+- Scan results currently stored in-memory (volatile)
+- No long-term database implementation in development version
+- Limited scalability for large patient populations
+- Impact: Production deployment requires database integration
+
+L10: Clinical Decision Support
+- System provides preliminary analysis only, not final diagnosis
+- Does not replace radiologist interpretation
+- No integration with clinical guidelines or treatment protocols
+- Recommendations are generic, not patient-specific
+- Impact: Must be used as a secondary screening tool, not standalone diagnostic
+
+L11: Patient-Physician Communication
+- Real-time chat functionality not fully implemented
+- No video consultation capabilities
+- Limited telemedicine features
+- Impact: Communication platform is foundational but requires enhancement
+
+2.4 REGULATORY AND ETHICAL LIMITATIONS
+
+L12: Regulatory Approval
+- System has not undergone FDA clearance or CE marking processes
+- Not certified for clinical use in diagnostic pathways
+- Lacks validation on large-scale, prospective clinical trials
+- Impact: Restricted to research/education use only at this stage
+
+L13: HIPAA Compliance
+- Full HIPAA compliance features not implemented (encryption at rest, audit logs)
+- Data breach notification procedures not established
+- Business Associate Agreements (BAA) not in place
+- Impact: Cannot be used with real patient data in U.S. healthcare settings
+  without significant security enhancements
+
+L14: Liability and Responsibility
+- No established protocols for handling AI errors or misdiagnoses
+- Unclear liability framework (developer vs. healthcare provider)
+- Lack of malpractice insurance coverage for AI-assisted diagnostics
+- Impact: Legal and ethical considerations require clarification
+
+L15: Explainability and Transparency
+- Deep learning models function as "black boxes" with limited interpretability
+- Difficult to explain specific reasoning behind predictions to patients/doctors
+- Lack of saliency maps or attention mechanisms for visualization
+- Impact: May reduce clinician trust and adoption
+
+2.5 EVALUATION LIMITATIONS
+
+L16: Validation Scope
+- Testing conducted on limited number of cases
+- No prospective clinical trial data
+- Inter-rater reliability studies not performed
+- Comparison with radiologist performance is indirect (literature-based)
+- Impact: Generalizability of results remains uncertain
+
+L17: User Testing
+- User experience evaluation limited to small sample size
+- No longitudinal studies on clinical workflow integration
+- Patient satisfaction surveys not conducted at scale
+- Impact: Real-world usability and acceptance require further study
+
+L18: Cost-Benefit Analysis
+- No formal economic evaluation performed
+- Implementation costs not fully assessed
+- Return on investment (ROI) not calculated
+- Impact: Economic viability for healthcare systems unclear
+
+2.6 SCOPE EXCLUSIONS (Deliberately Not Addressed)
+
+E1: Not Included in This Study:
+ Other cancer types (breast, prostate, colon, etc.)
+ Non-cancerous lung conditions (COPD, pneumonia, tuberculosis)
+ Pediatric lung imaging (focus on adult patients)
+ Cardiac or vascular pathology visible on chest CT
+ Treatment planning or radiation therapy simulation
+ Genomic or molecular profiling integration
+ Drug interaction or treatment response prediction
+
+E2: Future Work Considerations:
+’ Integration with PACS and EHR systems
+’ 3D volumetric analysis of CT series
+’ Temporal tracking of nodule growth over multiple scans
+’ Radiomics feature extraction for prognosis prediction
+’ Multi-modal learning (CT + PET, CT + clinical data)
+’ Federated learning for privacy-preserving model training
+’ Mobile application development (iOS/Android)
+
+
+3. DELIMITATIONS (Conscious Choices by Researchers)
+--------------------------------------------------------------------------------
+
+D1: Technology Stack Selection
+- Choice: React (frontend), FastAPI (backend), YOLOv12 (AI)
+- Rationale: Balance of performance, ease of development, community support
+- Alternative: Angular, Django, R-CNN family could have been used
+
+D2: Image Formats Supported
+- Choice: DICOM, JPEG, PNG, NIFTI
+- Rationale: Cover most common medical imaging formats
+- Alternative: Could support TIFF, BMP, but unnecessary for scope
+
+D3: Deployment Platform
+- Choice: Railway (backend), Vercel (frontend)
+- Rationale: Cost-effective, scalable, easy DevOps
+- Alternative: AWS, GCP, Azure offer more features but higher complexity
+
+D4: User Roles
+- Choice: Focus on patient and admin (doctor) roles
+- Rationale: Core functionality for MVP
+- Alternative: Could add radiologist, technician, administrator roles
+
+D5: Geographic Focus
+- Choice: English language interface, global accessibility
+- Rationale: Proof-of-concept for international use
+- Alternative: Could localize for specific regions
+
+
+4. ASSUMPTIONS
+--------------------------------------------------------------------------------
+
+A1: Technical Assumptions
+- Users have stable internet connection (minimum 5 Mbps)
+- CT scans are properly acquired according to standard protocols
+- Uploaded images represent lung tissue (system does not verify anatomical region)
+- Computational resources are adequate for real-time processing
+
+A2: Clinical Assumptions
+- AI analysis will be reviewed by qualified healthcare professionals
+- System is used as adjunct to, not replacement for, clinical judgment
+- Healthcare providers have basic computer literacy
+- Patients consent to use of AI in their care
+
+A3: Regulatory Assumptions
+- IRB/Ethics approval obtained for research use (where applicable)
+- No real patient data used without proper consent and de-identification
+- Compliance with local data protection regulations
+
+
+5. MITIGATION STRATEGIES FOR LIMITATIONS
+--------------------------------------------------------------------------------
+
+M1: Improve Data Quality and Diversity
+’ Collaborate with multiple healthcare institutions for diverse datasets
+’ Implement data augmentation techniques during training
+’ Continuous model retraining with new validated cases
+
+M2: Enhance Clinical Integration
+’ Develop PACS connectors for seamless workflow
+’ Implement HL7/FHIR standards for EHR interoperability
+’ Partner with radiology departments for pilot deployments
+
+M3: Strengthen Security and Compliance
+’ Implement end-to-end encryption (TLS, AES-256)
+’ Add comprehensive audit logging
+’ Pursue HIPAA certification process
+’ Conduct regular security audits and penetration testing
+
+M4: Expand Validation Studies
+’ Design prospective clinical trial with larger sample size
+’ Conduct multi-center validation studies
+’ Perform head-to-head comparison with radiologist readings
+’ Publish findings in peer-reviewed medical journals
+
+M5: Improve Explainability
+’ Integrate Grad-CAM or saliency maps for visual explanations
+’ Provide textual justifications for predictions
+’ Develop user-friendly educational materials on AI limitations
+
+
+6. ACCEPTANCE CRITERIA FOR SUCCESS
+--------------------------------------------------------------------------------
+
+The study will be considered successful if:
+ Detection accuracy achieves e85% across all cancer types
+ Processing time remains d10 seconds per scan
+ User satisfaction score e80% (positive feedback)
+ System uptime e99% during evaluation period
+ Zero critical security vulnerabilities identified
+ Platform successfully deployed and accessible via web browsers
+ Positive feedback from at least 3 healthcare professionals
+
+
+CONCLUSION
+--------------------------------------------------------------------------------
+This scope and limitations statement establishes clear boundaries for the
+LungEvity project, acknowledging both its capabilities and constraints. The
+limitations identified do not diminish the value of the research but rather
+provide transparency and guide future enhancements. The platform represents
+a significant step toward AI-augmented lung cancer diagnostics while recognizing
+the need for continued development, validation, and regulatory compliance before
+clinical deployment.
