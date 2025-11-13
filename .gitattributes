@@ -1,0 +1,2 @@
+# Use Git LFS for model binaries if you enable LFS
+*.pt filter=lfs diff=lfs merge=lfs -text

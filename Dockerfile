@@ -25,14 +25,13 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy backend files
 COPY backend_server.py .
 COPY start_backend.py .
-COPY best.pt .
 
 # Expose port (Railway will set PORT env variable)
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').getcode()" || exit 1
 
 # Start the backend server
 CMD ["python3", "start_backend.py"]

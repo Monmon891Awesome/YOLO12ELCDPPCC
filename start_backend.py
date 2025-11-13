@@ -14,22 +14,75 @@ Usage:
 import os
 import sys
 import subprocess
+import urllib.request
+import socket
 
 
 def check_model_file():
     """Check if best.pt model file exists"""
     if not os.path.exists("best.pt"):
-        print("=" * 70)
-        print("ERROR: best.pt model file not found!")
-        print("=" * 70)
-        print("\nPlease ensure best.pt is in the same directory as this script.")
-        print(f"Current directory: {os.getcwd()}")
-        print("\nExpected location: ./best.pt")
         return False
     else:
         file_size_mb = os.path.getsize("best.pt") / (1024 * 1024)
         print(f"✓ Found best.pt model ({file_size_mb:.2f} MB)")
         return True
+
+
+def download_model(url, dest="best.pt", timeout=120):
+    """Download a model file from a URL to `dest` using streaming.
+
+    Supports HTTP(S) and presigned S3 URLs. Uses standard library only.
+    """
+    print(f"Attempting to download model from: {url}")
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            total = resp.getheader('Content-Length')
+            if total:
+                total = int(total)
+            downloaded = 0
+            chunk_size = 8192
+            with open(dest + ".part", "wb") as out:
+                while True:
+                    chunk = resp.read(chunk_size)
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    downloaded += len(chunk)
+                    if total:
+                        pct = downloaded * 100 / total
+                        print(f"\rDownloading: {downloaded}/{total} bytes ({pct:.1f}%)", end="", flush=True)
+        # move into place
+        os.replace(dest + ".part", dest)
+        print("\nDownload completed")
+        return True
+    except Exception as e:
+        print(f"\nError downloading model: {e}")
+        return False
+
+
+def ensure_model():
+    """Ensure `best.pt` exists locally. If it's missing and MODEL_URL is set, try to download.
+
+    Returns True if the model is present after the call.
+    """
+    if check_model_file():
+        return True
+
+    model_url = os.environ.get("MODEL_URL")
+    if not model_url:
+        print("ERROR: best.pt model file not found and MODEL_URL not set.")
+        print("Set the MODEL_URL env var to a public or presigned URL where the model can be downloaded.")
+        print(f"Current directory: {os.getcwd()}")
+        return False
+
+    # attempt download
+    success = download_model(model_url)
+    if not success:
+        print("Failed to download model from MODEL_URL")
+        return False
+
+    # final check
+    return check_model_file()
 
 
 def check_dependencies():
@@ -125,7 +178,7 @@ def main():
     # Check prerequisites
     print("Checking prerequisites...\n")
 
-    if not check_model_file():
+    if not ensure_model():
         sys.exit(1)
 
     if not check_dependencies():
