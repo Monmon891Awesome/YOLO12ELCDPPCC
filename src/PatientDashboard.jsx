@@ -90,14 +90,25 @@ const PatientDashboard = ({ username, onLogout }) => {
   const [messages, setMessages] = useState([]);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
-  // Load latest scan on mount
+  // Load/refresh patient profile and data on mount
   useEffect(() => {
     const profile = getCurrentPatientProfile();
     if (profile) {
+      // Update profile state
+      setPatientProfile(profile);
+
+      // Load scan history
       const history = getScansByPatientId(profile.id);
+      setScanHistory(history);
       if (history.length > 0) {
         setCurrentScanResult(history[0]);
       }
+
+      // Load appointments
+      setAppointments(getAppointmentsByPatient(profile.id));
+
+      // Load messages
+      setMessages(getMessagesByUser(profile.id));
     }
   }, []);
 
@@ -129,22 +140,32 @@ const PatientDashboard = ({ username, onLogout }) => {
   const handleScanComplete = (result) => {
     setCurrentScanResult(result);
 
-    // Enrich scan with patient ID before saving
+    // Get or create patient profile
     const profile = getCurrentPatientProfile();
+    if (!profile) {
+      console.error('❌ No patient profile found!');
+      alert('Error: Patient profile not found. Please log in again.');
+      return;
+    }
+
+    console.log('📋 Patient profile:', profile.id, profile.name);
+
+    // Enrich scan with patient ID before saving
     const enrichedResult = {
       ...result,
-      patientId: profile?.id || 'PAT-UNKNOWN'
+      patientId: profile.id
     };
 
+    console.log('💾 Saving scan with patientId:', enrichedResult.patientId);
+
     // Save to unified storage
-    saveScan(enrichedResult);
+    const saved = saveScan(enrichedResult);
+    console.log('✅ Scan saved:', saved);
 
     // Refresh scan history immediately
-    if (profile) {
-      const updatedHistory = getScansByPatientId(profile.id);
-      setScanHistory(updatedHistory);
-      console.log('✅ Scan history updated:', updatedHistory.length, 'scans');
-    }
+    const updatedHistory = getScansByPatientId(profile.id);
+    setScanHistory(updatedHistory);
+    console.log('📊 Scan history updated:', updatedHistory.length, 'scans');
 
     // Refresh dashboard stats
     setDashboardStats(getDashboardStats());
