@@ -309,8 +309,18 @@ export function getCurrentPatientProfile() {
     const profile = getFromStorage(STORAGE_KEYS.PATIENT_PROFILES);
     if (profile) return profile;
 
-    // Fallback to default profile
-    return getDefaultPatientProfile();
+    // Fallback: create profile from session username
+    const defaultProfile = getDefaultPatientProfile();
+    const sessionProfile = {
+      ...defaultProfile,
+      name: session.username || defaultProfile.name,
+      id: `PAT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+    };
+
+    // Save it so it persists
+    savePatientProfile(sessionProfile);
+
+    return sessionProfile;
   }
   return null;
 }
