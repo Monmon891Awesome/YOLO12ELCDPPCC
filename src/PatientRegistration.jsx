@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { User, Mail, Lock, ArrowLeft, X } from 'lucide-react';
+import { User, Mail, Lock, ArrowLeft, X, Calendar } from 'lucide-react';
 import './PatientRegistration.css';
+import { createPatient, getAllPatients } from './utils/unifiedDataManager';
 
 const PatientRegistration = ({ onClose, onBackToLogin }) => {
   const [formData, setFormData] = useState({
-    username: '',
+    firstName: '',
+    lastName: '',
     email: '',
+    dateOfBirth: '',
     password: '',
     confirmPassword: ''
   });
@@ -32,35 +35,50 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
   
   const validateForm = () => {
     const newErrors = {};
-    
-    // Username validation
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 4) {
-      newErrors.username = 'Username must be at least 4 characters';
+
+    // First name validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
     }
-    
+
+    // Last name validation
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+
     // Email validation
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
+    // Date of birth validation
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = 'Date of birth is required';
+    } else {
+      const today = new Date();
+      const birthDate = new Date(formData.dateOfBirth);
+      const age = today.getFullYear() - birthDate.getFullYear();
+      if (age < 1 || age > 120) {
+        newErrors.dateOfBirth = 'Please enter a valid date of birth';
+      }
+    }
+
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     // Confirm password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -70,46 +88,46 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
     if (validateForm()) {
       setIsSubmitting(true);
       
-      // Save user to localStorage
-      const existingUsers = JSON.parse(localStorage.getItem('pneumAIUsers') || '[]');
-      
-      // Check if username or email already exists
-      const existingUser = existingUsers.find(
-        user => user.username === formData.username || user.email === formData.email
-      );
-      
-      if (existingUser) {
-        setIsSubmitting(false);
-        if (existingUser.username === formData.username) {
-          setErrors({ ...errors, username: 'Username already exists' });
-        } else {
-          setErrors({ ...errors, email: 'Email already exists' });
-        }
-        return;
-      }
-      
-      // Add new user
-      const newUser = {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        userType: 'patient',
-        registeredAt: new Date().toISOString()
-      };
-      
-      existingUsers.push(newUser);
-      localStorage.setItem('pneumAIUsers', JSON.stringify(existingUsers));
-      
-      // Simulate a successful registration after a short delay
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setRegistrationSuccess(true);
+      try {
+        // Check if email already exists in patients database
+        const existingPatients = getAllPatients();
+        const emailExists = existingPatients.some(patient => patient.email === formData.email);
         
-        // After successful registration, redirect to login after 2 seconds
+        if (emailExists) {
+          setErrors({ ...errors, email: 'Email already registered' });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Create patient using unified data manager
+        const newPatient = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          dateOfBirth: formData.dateOfBirth,
+          password: formData.password,
+          userType: 'patient',
+          registeredAt: new Date().toISOString(),
+          profileComplete: true
+        };
+        
+        createPatient(newPatient);
+        
+        // Success
         setTimeout(() => {
-          onBackToLogin();
-        }, 2000);
-      }, 1500);
+          setIsSubmitting(false);
+          setRegistrationSuccess(true);
+          
+          // Redirect to login after 2 seconds
+          setTimeout(() => {
+            onBackToLogin();
+          }, 2000);
+        }, 1000);
+      } catch (error) {
+        console.error('Registration error:', error);
+        setErrors({ ...errors, submit: 'Registration failed. Please try again.' });
+        setIsSubmitting(false);
+      }
     }
   };
   
@@ -140,20 +158,53 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
             </p>
             
             <form className="registration-form" onSubmit={handleSubmit}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="firstName">
+                    <User className="input-icon" />
+                    First Name
+                  </label>
+                  <input 
+                    type="text" 
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    placeholder="Enter your first name"
+                  />
+                  {errors.firstName && <span className="error-text">{errors.firstName}</span>}
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="lastName">
+                    <User className="input-icon" />
+                    Last Name
+                  </label>
+                  <input 
+                    type="text" 
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    placeholder="Enter your last name"
+                  />
+                  {errors.lastName && <span className="error-text">{errors.lastName}</span>}
+                </div>
+              </div>
+              
               <div className="form-group">
-                <label htmlFor="username">
-                  <User className="input-icon" />
-                  Username
+                <label htmlFor="dateOfBirth">
+                  <Calendar className="input-icon" />
+                  Date of Birth
                 </label>
                 <input 
-                  type="text" 
-                  id="username"
-                  name="username"
-                  value={formData.username}
+                  type="date" 
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
                   onChange={handleChange}
-                  placeholder="Choose a username"
                 />
-                {errors.username && <span className="error-text">{errors.username}</span>}
+                {errors.dateOfBirth && <span className="error-text">{errors.dateOfBirth}</span>}
               </div>
               
               <div className="form-group">
@@ -183,7 +234,7 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Create a password"
+                  placeholder="Create a password (min 6 characters)"
                 />
                 {errors.password && <span className="error-text">{errors.password}</span>}
               </div>
@@ -203,6 +254,8 @@ const PatientRegistration = ({ onClose, onBackToLogin }) => {
                 />
                 {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
               </div>
+              
+              {errors.submit && <div className="error-text" style={{ marginBottom: '1rem' }}>{errors.submit}</div>}
               
               <div className="privacy-notice">
                 By creating an account, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>

@@ -6,42 +6,42 @@ import './Dashboard.css'; // Import dashboard CSS
 import './PatientRegistration.css'; // Import patient registration CSS
 import Login from './Login'; // Import Login component
 import PatientRegistration from './PatientRegistration'; // Import Patient Registration component
-import PatientDashboard from './PatientDashboard'; // Import Patient Dashboard
-import AdminDashboard from './AdminDashboard'; // Import Admin Dashboard
+import PatientDashboard from './PatientDashboard'; // Import Patient Dashboard (Classic)
+// ...existing code...
+import AdminDashboard from './AdminDashboard'; // Import Admin Dashboard (Classic)
+import AdminDashboardModern from './AdminDashboardModern'; // Import Admin Dashboard (Modern)
+// ...existing code...
 import DoctorDashboard from './DoctorDashboard'; // Import Doctor Dashboard
+import { initializeDatabase } from './utils/localDataManager'; // Import database initialization
 
 const PneumAIUI = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+
   // Authentication states
   const [showLogin, setShowLogin] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userType, setUserType] = useState(null); // 'patient' or 'admin'
   const [username, setUsername] = useState('');
-  
-  // Check if user was previously logged in
+  const [dashboardStyle, setDashboardStyle] = useState('modern'); // Options: 'classic', 'modern'
+
+  // Check if user was previously logged in and initialize database
   useEffect(() => {
+    // Initialize database with demo data
+    initializeDatabase();
+
     const savedSession = JSON.parse(localStorage.getItem('pneumAISession') || 'null');
     if (savedSession) {
       setIsLoggedIn(true);
       setUserType(savedSession.userType);
       setUsername(savedSession.username);
     }
-    
-    // Initialize demo admin account if it doesn't exist
-    const users = JSON.parse(localStorage.getItem('pneumAIUsers') || '[]');
-    const adminExists = users.some(user => user.email === 'admin@pneumai.com');
-    if (!adminExists) {
-      users.push({
-        username: 'Admin',
-        email: 'admin@pneumai.com',
-        password: 'admin123',
-        userType: 'admin',
-        registeredAt: new Date().toISOString()
-      });
-      localStorage.setItem('pneumAIUsers', JSON.stringify(users));
+
+    // Load dashboard preference
+    const dashboardPref = localStorage.getItem('dashboardStyle');
+    if (dashboardPref) {
+      setDashboardStyle(dashboardPref);
     }
   }, []);
   
@@ -94,13 +94,37 @@ const PneumAIUI = () => {
     setShowRegistration(false);
     setShowLogin(true);
   };
-  
+
+  // Toggle dashboard style - cycles through all available styles
+  const toggleDashboardStyle = () => {
+    const styles = ['classic', 'modern'];
+    const currentIndex = styles.indexOf(dashboardStyle);
+    const nextIndex = (currentIndex + 1) % styles.length;
+    const newStyle = styles[nextIndex];
+    setDashboardStyle(newStyle);
+    localStorage.setItem('dashboardStyle', newStyle);
+  } 
+
   // If user is logged in, show the appropriate dashboard
   if (isLoggedIn) {
     if (userType === 'patient') {
-      return <PatientDashboard username={username} onLogout={handleLogout} />;
+      // Choose patient dashboard style
+      switch (dashboardStyle) {
+        case 'modern':
+          return <PatientDashboard username={username} onLogout={handleLogout} />;
+        case 'classic':
+        default:
+          return <PatientDashboard username={username} onLogout={handleLogout} />;
+      }
     } else if (userType === 'admin') {
-      return <AdminDashboard username={username} onLogout={handleLogout} />;
+      // Choose admin dashboard style
+      switch (dashboardStyle) {
+        case 'modern':
+          return <AdminDashboardModern username={username} onLogout={handleLogout} onToggleDashboardStyle={toggleDashboardStyle} />;
+        case 'classic':
+        default:
+          return <AdminDashboard username={username} onLogout={handleLogout} onToggleDashboardStyle={toggleDashboardStyle} />;
+      }
     } else if (userType === 'doctor') {
       return <DoctorDashboard username={username} onLogout={handleLogout} />;
     }

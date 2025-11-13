@@ -6,6 +6,21 @@
 const API_BASE_URL = process.env.REACT_APP_YOLO_API_URL || 'http://localhost:8000';
 
 /**
+ * Helper function to ensure image URLs are absolute
+ * @param {string} url - The image URL (may be relative)
+ * @returns {string} - Absolute URL
+ */
+const ensureAbsoluteUrl = (url) => {
+  if (!url) return url;
+  // If URL is already absolute (starts with http:// or https://), return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // Otherwise, prepend the API base URL
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
+/**
  * Upload CT scan image for analysis
  * @param {File} file - The CT scan image file (DICOM, NIFTI, JPEG, or PNG)
  * @param {Function} onProgress - Callback for upload progress (0-100)
@@ -31,6 +46,17 @@ export const uploadScanForAnalysis = async (file, onProgress) => {
     }
 
     const result = await response.json();
+
+    // Fix relative URLs to absolute URLs
+    if (result.results) {
+      if (result.results.imageUrl) {
+        result.results.imageUrl = ensureAbsoluteUrl(result.results.imageUrl);
+      }
+      if (result.results.annotatedImageUrl) {
+        result.results.annotatedImageUrl = ensureAbsoluteUrl(result.results.annotatedImageUrl);
+      }
+    }
+
     return result;
   } catch (error) {
     console.error('Error uploading scan:', error);
@@ -67,6 +93,17 @@ export const uploadScanWithProgress = (file, onProgress) => {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const result = JSON.parse(xhr.responseText);
+
+          // Fix relative URLs to absolute URLs
+          if (result.results) {
+            if (result.results.imageUrl) {
+              result.results.imageUrl = ensureAbsoluteUrl(result.results.imageUrl);
+            }
+            if (result.results.annotatedImageUrl) {
+              result.results.annotatedImageUrl = ensureAbsoluteUrl(result.results.annotatedImageUrl);
+            }
+          }
+
           resolve(result);
         } catch (error) {
           reject(new Error('Invalid response format'));

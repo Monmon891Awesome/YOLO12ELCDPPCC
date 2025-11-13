@@ -17,5 +17,8 @@ numpy>=1.24.0
 # Medical Image Support (DICOM)
 pydicom>=2.4.0
 
+# Database
+psycopg2-binary>=2.9.9
+
 # Optional but recommended
 python-dotenv>=1.0.0

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Layers, Shield, UserPlus, Users, CheckCircle, ArrowRight, Lock, Mail, User } from 'lucide-react';
 import './Login.css';
+import { authenticateUser, createSession } from './utils/unifiedDataManager';
 
 const Login = ({ onClose, onLogin, onRegister }) => {
   const [activeTab, setActiveTab] = useState('patient');
@@ -37,32 +38,43 @@ const Login = ({ onClose, onLogin, onRegister }) => {
     if (activeTab === 'doctor' && formData.email === 'admin@pneumai.com' && formData.password === 'admin123') {
       setTimeout(() => {
         setIsSubmitting(false);
-        onLogin('admin', 'Admin');  // Log in as admin
+        createSession({
+          email: 'admin@pneumai.com',
+          username: 'admin',
+          userType: 'admin',
+          firstName: 'Admin',
+          lastName: 'User'
+        });
+        onLogin('admin', 'Admin');
       }, 1000);
       return;
     }
 
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('pneumAIUsers') || '[]');
-    
-    // Find user by email and password
-    const user = users.find(user => 
-      user.email === formData.email && 
-      user.password === formData.password && 
-      (activeTab === 'patient' ? user.userType === 'patient' : user.userType === 'doctor')
-    );
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Authenticate using unified data manager
+      const user = authenticateUser(formData.email, formData.password, activeTab);
       
-      if (user) {
-        // Login successful
-        onLogin(user.userType, user.username);
-      } else {
-        // Login failed
-        setError('Invalid email or password');
-      }
-    }, 1000);
+      setTimeout(() => {
+        setIsSubmitting(false);
+        
+        if (user) {
+          // Create session
+          createSession({
+            ...user,
+            username: `${user.firstName} ${user.lastName}`
+          });
+          // Login successful
+          onLogin(user.userType, `${user.firstName} ${user.lastName}`);
+        } else {
+          // Login failed
+          setError('Invalid email or password for this account type');
+        }
+      }, 1000);
+    } catch (err) {
+      setIsSubmitting(false);
+      setError('Login error. Please try again.');
+      console.error('Login error:', err);
+    }
   };
 
   // Prevent click propagation from modal content to overlay

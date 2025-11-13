@@ -224,7 +224,7 @@ const getDefaultDoctors = () => [
     availability: 'Available May 15-20',
     email: 'sarah.miller@hospital.com',
     phone: '(555) 234-5678',
-    image: '/api/placeholder/60/60'
+    image: '/assets/ai-doc1.jpg'
   },
   {
     id: 'doc_2',
@@ -233,7 +233,7 @@ const getDefaultDoctors = () => [
     availability: 'Available May 12-18',
     email: 'james.rodriguez@hospital.com',
     phone: '(555) 234-5679',
-    image: '/api/placeholder/60/60'
+    image: '/assets/ai-doc2.jpg'
   },
   {
     id: 'doc_3',
@@ -242,7 +242,7 @@ const getDefaultDoctors = () => [
     availability: 'Available May 10-16',
     email: 'emily.chen@hospital.com',
     phone: '(555) 234-5680',
-    image: '/api/placeholder/60/60'
+    image: '/assets/ai-doc3.png'
   }
 ];
 

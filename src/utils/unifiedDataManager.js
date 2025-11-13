@@ -292,6 +292,67 @@ export function getAllPatients() {
 }
 
 /**
+ * Create a new patient during registration
+ */
+export function createPatient(patientData) {
+  try {
+    const patients = getAllPatients();
+    
+    // Generate patient ID in format: PAT-YY-XXXX (e.g., PAT-25-0001)
+    const year = new Date().getFullYear().toString().slice(-2);
+    const existingPatients = patients.filter(p => p.id?.startsWith(`PAT-${year}`));
+    const patientNumber = String(existingPatients.length + 1).padStart(4, '0');
+    const patientId = `PAT-${year}-${patientNumber}`;
+    
+    // Create new patient object
+    const newPatient = {
+      id: patientId,
+      firstName: patientData.firstName,
+      lastName: patientData.lastName,
+      fullName: `${patientData.firstName} ${patientData.lastName}`,
+      email: patientData.email,
+      dateOfBirth: patientData.dateOfBirth,
+      password: patientData.password, // In production, this should be hashed
+      userType: 'patient',
+      registeredAt: new Date().toISOString(),
+      profileComplete: true,
+      scans: [],
+      appointments: [],
+      phone: '',
+      address: '',
+      medicalHistory: ''
+    };
+    
+    // Add to patients list
+    patients.push(newPatient);
+    saveToStorage(STORAGE_KEYS.PATIENTS, patients);
+    
+    // Also add to users for authentication
+    const users = getFromStorage(STORAGE_KEYS.USERS) || [];
+    const userExists = users.some(u => u.email === patientData.email);
+    
+    if (!userExists) {
+      users.push({
+        id: patientId,
+        email: patientData.email,
+        password: patientData.password,
+        userType: 'patient',
+        firstName: patientData.firstName,
+        lastName: patientData.lastName,
+        registeredAt: new Date().toISOString()
+      });
+      saveToStorage(STORAGE_KEYS.USERS, users);
+    }
+    
+    return newPatient;
+  } catch (error) {
+    console.error('Error creating patient:', error);
+    throw error;
+  }
+}
+
+
+/**
  * Get patient by ID
  */
 export function getPatientById(patientId) {
@@ -607,6 +668,49 @@ export function sendMessage(messageData) {
  */
 export function getCurrentSession() {
   return getFromStorage(STORAGE_KEYS.SESSION);
+}
+
+/**
+ * Authenticate user by email, password, and userType
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @param {string} userType - 'patient', 'doctor', or 'admin'
+ * @returns {Object|null} - User object if authenticated, null otherwise
+ */
+export function authenticateUser(email, password, userType) {
+  try {
+    if (userType === 'patient') {
+      const patients = getAllPatients();
+      const patient = patients.find(p => p.email === email && p.password === password);
+      if (patient) {
+        return {
+          id: patient.id,
+          email: patient.email,
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+          userType: 'patient',
+          fullName: patient.fullName
+        };
+      }
+    } else if (userType === 'doctor') {
+      const doctors = getAllDoctors();
+      const doctor = doctors.find(d => d.email === email && d.password === password);
+      if (doctor) {
+        return {
+          id: doctor.id,
+          email: doctor.email,
+          firstName: doctor.name.split(' ')[0],
+          lastName: doctor.name.split(' ').slice(1).join(' '),
+          userType: 'doctor',
+          fullName: doctor.name
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return null;
+  }
 }
 
 /**

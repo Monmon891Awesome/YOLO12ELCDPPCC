@@ -20,7 +20,7 @@ const ScanResults = ({ scanData }) => {
   const doctors = getDoctors();
 
   const { results, metadata, uploadTime, scanId } = scanData;
-  const { detected, confidence, riskLevel, detections } = results;
+  const { detected, confidence, riskLevel = 'none', detections } = results;
 
   const getRiskColor = (level) => {
     switch (level) {
@@ -185,6 +185,16 @@ const ScanResults = ({ scanData }) => {
               src={showAnnotations && results.annotatedImageUrl ? results.annotatedImageUrl : results.imageUrl}
               alt="CT Scan"
               className="scan-image"
+              onError={(e) => {
+                console.error('Failed to load image:', e.target.src);
+                // Try to fallback to the original image if annotated fails
+                if (showAnnotations && results.imageUrl && e.target.src !== results.imageUrl) {
+                  console.log('Falling back to original image');
+                  e.target.src = results.imageUrl;
+                } else {
+                  console.error('Both image URLs failed to load');
+                }
+              }}
             />
           </div>
         </div>
