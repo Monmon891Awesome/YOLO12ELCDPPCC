@@ -29,15 +29,24 @@ import SimplifiedPatientPlatform from './SimplifiedPatientPlatform'; // Import t
 import ScanUpload from './components/ScanUpload';
 import ScanResults from './components/ScanResults';
 import {
-  getPatientProfile,
-  getScanHistory,
+  getCurrentPatientProfile,
+  getAllScans,
+  getScansByPatientId,
   saveScan,
   deleteScan,
   getAppointments,
-  getDoctors,
+  getAppointmentsByPatient,
+  saveAppointment,
+  updateAppointment,
+  deleteAppointment,
+  getAllDoctors,
+  getMessages,
+  getMessagesByUser,
+  sendMessage,
   getDashboardStats,
-  formatDate
-} from './utils/patientDataManager';
+  formatDate,
+  savePatientProfile
+} from './utils/unifiedDataManager';
 
 const PatientDashboard = ({ username, onLogout }) => {
   const [activeTab, setActiveTab] = useState('home');
@@ -45,26 +54,50 @@ const PatientDashboard = ({ username, onLogout }) => {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
-  // Load persistent data
-  const [patientProfile, setPatientProfile] = useState(getPatientProfile());
-  const [scanHistory, setScanHistory] = useState(getScanHistory());
-  const [appointments, setAppointments] = useState(getAppointments());
-  const [doctors, setDoctors] = useState(getDoctors());
+  // Load persistent data using unified data manager
+  const [patientProfile, setPatientProfile] = useState(getCurrentPatientProfile());
+  const [scanHistory, setScanHistory] = useState(() => {
+    const profile = getCurrentPatientProfile();
+    return profile ? getScansByPatientId(profile.id) : [];
+  });
+  const [appointments, setAppointments] = useState(() => {
+    const profile = getCurrentPatientProfile();
+    return profile ? getAppointmentsByPatient(profile.id) : [];
+  });
+  const [doctors, setDoctors] = useState(getAllDoctors());
   const [dashboardStats, setDashboardStats] = useState(getDashboardStats());
 
   // Scan upload and results state
   const [currentScanResult, setCurrentScanResult] = useState(null);
 
-  // New state variables for drag and drop functionality
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(null);
-  const [quickUploadSuccess, setQuickUploadSuccess] = useState(false);
+  // Appointment booking state
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [appointmentForm, setAppointmentForm] = useState({
+    date: '',
+    time: '',
+    type: 'consultation',
+    notes: ''
+  });
+  const [isBookingAppointment, setIsBookingAppointment] = useState(false);
+
+  // Messaging state
+  const [messageForm, setMessageForm] = useState({
+    recipient: '',
+    subject: '',
+    message: ''
+  });
+  const [messages, setMessages] = useState([]);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   // Load latest scan on mount
   useEffect(() => {
-    const history = getScanHistory();
-    if (history.length > 0) {
-      setCurrentScanResult(history[0]);
+    const profile = getCurrentPatientProfile();
+    if (profile) {
+      const history = getScansByPatientId(profile.id);
+      if (history.length > 0) {
+        setCurrentScanResult(history[0]);
+      }
     }
   }, []);
 
@@ -73,15 +106,48 @@ const PatientDashboard = ({ username, onLogout }) => {
     setDashboardStats(getDashboardStats());
   }, [scanHistory]);
 
+  // Periodically refresh doctors list to show newly added doctors
+  useEffect(() => {
+    const refreshDoctors = () => {
+      const updatedDoctors = getAllDoctors();
+      setDoctors(updatedDoctors);
+    };
+
+    // Refresh every 5 seconds
+    const interval = setInterval(refreshDoctors, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Appointments are already loaded from localStorage via getAppointments() in state
+  // No need for API call - using localStorage directly
+
+  // Messages are already loaded from localStorage via getMessages() in state
+  // No need for API call - using localStorage directly
+
   // Handle scan upload completion
   const handleScanComplete = (result) => {
     setCurrentScanResult(result);
 
-    // Save to localStorage
-    saveScan(result);
+    // Enrich scan with patient ID before saving
+    const profile = getCurrentPatientProfile();
+    const enrichedResult = {
+      ...result,
+      patientId: profile?.id || 'PAT-UNKNOWN'
+    };
 
-    // Refresh scan history
-    setScanHistory(getScanHistory());
+    // Save to unified storage
+    saveScan(enrichedResult);
+
+    // Refresh scan history immediately
+    if (profile) {
+      const updatedHistory = getScansByPatientId(profile.id);
+      setScanHistory(updatedHistory);
+      console.log('✅ Scan history updated:', updatedHistory.length, 'scans');
+    }
+
+    // Refresh dashboard stats
+    setDashboardStats(getDashboardStats());
 
     setUploadSuccess(true);
     // Auto-switch to results view
@@ -97,7 +163,12 @@ const PatientDashboard = ({ username, onLogout }) => {
   const handleDeleteScan = (scanId) => {
     if (window.confirm('Are you sure you want to delete this scan?')) {
       deleteScan(scanId);
-      setScanHistory(getScanHistory());
+
+      // Refresh scan history
+      const profile = getCurrentPatientProfile();
+      if (profile) {
+        setScanHistory(getScansByPatientId(profile.id));
+      }
 
       // If we're viewing the deleted scan, clear it
       if (currentScanResult?.scanId === scanId) {
@@ -115,7 +186,7 @@ const PatientDashboard = ({ username, onLogout }) => {
   };
 
   // Real data from localStorage - convert to format expected by UI
-  const recentUploads = scanHistory.slice(0, 5).map(scan => ({
+  const recentUploads = (scanHistory || []).slice(0, 5).map(scan => ({
     id: scan.scanId,
     name: `CT Scan - ${formatDate(scan.uploadTime)}`,
     date: formatDate(scan.uploadTime),
@@ -127,73 +198,168 @@ const PatientDashboard = ({ username, onLogout }) => {
 
   // Use doctors from localStorage
   const availableDoctors = doctors;
-  
-  // New handlers for drag and drop functionality
-  const handleDragEnter = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
+
+  // ============ Appointment Booking Handlers ============
+
+  const handleBookAppointment = (doctor) => {
+    setSelectedDoctor(doctor);
+    setAppointmentForm({
+      date: '',
+      time: '',
+      type: 'consultation',
+      notes: ''
+    });
+    setShowAppointmentModal(true);
   };
 
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+  const handleAppointmentFormChange = (field, value) => {
+    setAppointmentForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleDragOver = (e) => {
+  const handleSubmitAppointment = async (e) => {
     e.preventDefault();
-    e.stopPropagation();
-  };
+    setIsBookingAppointment(true);
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    // Simulate file upload progress
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setQuickUploadSuccess(true);
-            setTimeout(() => {
-              setUploadProgress(null);
-              setQuickUploadSuccess(false);
-            }, 2000);
-          }, 500);
-          return 100;
+    try {
+      const appointmentData = {
+        patientId: patientProfile.id,
+        doctorId: selectedDoctor.id,
+        doctor: selectedDoctor.name,
+        date: appointmentForm.date,
+        time: appointmentForm.time,
+        type: appointmentForm.type,
+        notes: appointmentForm.notes
+      };
+
+      // Save to unified storage
+      const savedAppointment = saveAppointment(appointmentData);
+
+      if (savedAppointment) {
+        // Refresh appointments list
+        const profile = getCurrentPatientProfile();
+        if (profile) {
+          setAppointments(getAppointmentsByPatient(profile.id));
         }
-        return prev + 5;
-      });
-    }, 100);
-  };
 
-  const handleFileInputChange = (e) => {
-    if (e.target.files.length > 0) {
-      // Simulate file upload progress
-      setUploadProgress(0);
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-              setQuickUploadSuccess(true);
-              setTimeout(() => {
-                setUploadProgress(null);
-                setQuickUploadSuccess(false);
-              }, 2000);
-            }, 500);
-            return 100;
-          }
-          return prev + 5;
-        });
-      }, 100);
+        // Close modal and show success
+        setShowAppointmentModal(false);
+        alert('Appointment booked successfully!');
+      } else {
+        throw new Error('Failed to save appointment');
+      }
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      alert(`Failed to book appointment: ${error.message}`);
+    } finally {
+      setIsBookingAppointment(false);
     }
   };
-  
+
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) {
+      return;
+    }
+
+    try {
+      deleteAppointment(appointmentId);
+
+      // Refresh appointments
+      const profile = getCurrentPatientProfile();
+      if (profile) {
+        setAppointments(getAppointmentsByPatient(profile.id));
+      }
+
+      alert('Appointment cancelled successfully!');
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      alert(`Failed to cancel appointment: ${error.message}`);
+    }
+  };
+
+  const handleRescheduleAppointment = async (appointment) => {
+    const newDate = prompt('Enter new date (YYYY-MM-DD):', appointment.date);
+    const newTime = prompt('Enter new time (HH:MM AM/PM):', appointment.time);
+
+    if (!newDate || !newTime) return;
+
+    try {
+      updateAppointment(appointment.id, {
+        date: newDate,
+        time: newTime
+      });
+
+      // Refresh appointments list
+      const profile = getCurrentPatientProfile();
+      if (profile) {
+        setAppointments(getAppointmentsByPatient(profile.id));
+      }
+
+      alert('Appointment rescheduled successfully!');
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+      alert(`Failed to reschedule appointment: ${error.message}`);
+    }
+  };
+
+  // ============ Messaging Handlers ============
+
+  const handleMessageFormChange = (field, value) => {
+    setMessageForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    setIsSendingMessage(true);
+
+    try {
+      // Get current patient profile
+      const profile = getCurrentPatientProfile();
+      if (!profile) {
+        throw new Error('Patient profile not found. Please log in again.');
+      }
+
+      // Find recipient doctor
+      const recipientDoctor = doctors.find(d => d.id === messageForm.recipient);
+      if (!recipientDoctor) {
+        throw new Error('Please select a recipient');
+      }
+
+      const messageData = {
+        senderId: profile.id,
+        senderName: profile.name,
+        senderRole: 'patient',
+        receiverId: recipientDoctor.id,
+        receiverName: recipientDoctor.name,
+        content: `Subject: ${messageForm.subject}\n\n${messageForm.message}`
+      };
+
+      sendMessage(messageData);
+
+      // Refresh messages list
+      setMessages(getMessagesByUser(profile.id));
+
+      // Reset form
+      setMessageForm({
+        recipient: '',
+        subject: '',
+        message: ''
+      });
+
+      alert('Message sent successfully!');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert(`Failed to send message: ${error.message}`);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
   const handleUpload = (e) => {
     e.preventDefault();
     // Simulate upload process
@@ -246,7 +412,7 @@ const PatientDashboard = ({ username, onLogout }) => {
           </div>
           <div className="user-info-sidebar">
             <span className="username-sidebar">Welcome,</span>
-            <span className="username-value">{username}</span>
+            <span className="username-value">{patientProfile?.name || username}</span>
           </div>
         </div>
         
@@ -370,7 +536,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                   <h3>Latest Scan Result</h3>
                   <div className="result-quick-info">
                     <p><strong>Status:</strong> {currentScanResult.results.detected ? 'Detection Found' : 'No Detection'}</p>
-                    <p><strong>Risk Level:</strong> <span className={`risk-${currentScanResult.results.riskLevel}`}>{currentScanResult.results.riskLevel.toUpperCase()}</span></p>
+                    <p><strong>Risk Level:</strong> <span className={`risk-${currentScanResult.results.riskLevel || 'none'}`}>{(currentScanResult.results.riskLevel || 'none').toUpperCase()}</span></p>
                     <button onClick={() => setActiveTab('results')} type="button" className="view-full-results">
                       View Full Results
                     </button>
@@ -413,10 +579,10 @@ const PatientDashboard = ({ username, onLogout }) => {
                 <div className="dashboard-card">
                   <h3>Your Upcoming Appointments</h3>
                   <div className="card-content">
-                    {appointments.length > 0 ? (
-                      appointments.map(appointment => {
-                        const formattedDate = formatDate(appointment.date);
-                        const dateParts = formattedDate.split(' ');
+                    {(appointments || []).length > 0 ? (
+                      (appointments || []).map(appointment => {
+                        const formattedDate = formatDate(appointment.date) || '';
+                        const dateParts = formattedDate ? formattedDate.split(' ') : ['', ''];
                         return (
                           <div className="appointment-item" key={appointment.id}>
                             <div className="appointment-date">
@@ -447,8 +613,8 @@ const PatientDashboard = ({ username, onLogout }) => {
                 <div className="dashboard-card">
                   <h3>Recent Uploads</h3>
                   <div className="card-content">
-                    {recentUploads.length > 0 ? (
-                      recentUploads.map(upload => (
+                    {(recentUploads || []).length > 0 ? (
+                      (recentUploads || []).map(upload => (
                         <div className="upload-item" key={upload.id}>
                           <div className="upload-icon">
                             <FileText />
@@ -506,7 +672,7 @@ const PatientDashboard = ({ username, onLogout }) => {
               </div>
               
               <div className="doctors-grid">
-                {availableDoctors.map(doctor => (
+                {(availableDoctors || []).map(doctor => (
                   <div className="doctor-card" key={doctor.id}>
                     <div className="doctor-avatar">
                       <img src={doctor.image} alt={doctor.name} />
@@ -515,7 +681,13 @@ const PatientDashboard = ({ username, onLogout }) => {
                       <h3>{doctor.name}</h3>
                       <p className="doctor-specialty">{doctor.specialty}</p>
                       <p className="doctor-availability">{doctor.availability}</p>
-                      <button className="book-button" type="button">Book Appointment</button>
+                      <button
+                        className="book-button"
+                        type="button"
+                        onClick={() => handleBookAppointment(doctor)}
+                      >
+                        Book Appointment
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -524,10 +696,10 @@ const PatientDashboard = ({ username, onLogout }) => {
               <div className="dashboard-card full-width">
                 <h3>Your Scheduled Appointments</h3>
                 <div className="appointments-list">
-                  {appointments.length > 0 ? (
-                    appointments.map(appointment => {
-                      const formattedDate = formatDate(appointment.date);
-                      const dateParts = formattedDate.split(' ');
+                  {(appointments || []).length > 0 ? (
+                    (appointments || []).map(appointment => {
+                      const formattedDate = formatDate(appointment.date) || '';
+                      const dateParts = formattedDate ? formattedDate.split(' ') : ['', ''];
                       return (
                         <div className="appointment-list-item" key={appointment.id}>
                           <div className="appointment-list-date">
@@ -540,8 +712,20 @@ const PatientDashboard = ({ username, onLogout }) => {
                             <p>{appointment.time}</p>
                           </div>
                           <div className="appointment-list-actions">
-                            <button className="reschedule-button" type="button">Reschedule</button>
-                            <button className="cancel-button" type="button">Cancel</button>
+                            <button
+                              className="reschedule-button"
+                              type="button"
+                              onClick={() => handleRescheduleAppointment(appointment)}
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              className="cancel-button"
+                              type="button"
+                              onClick={() => handleCancelAppointment(appointment.id)}
+                            >
+                              Cancel
+                            </button>
                           </div>
                         </div>
                       );
@@ -725,25 +909,25 @@ const PatientDashboard = ({ username, onLogout }) => {
                   <div className="patient-grid">
                     <div className="patient-field">
                       <p className="field-label">Patient Name</p>
-                      <p className="field-value">{patientProfile.name}</p>
+                      <p className="field-value">{patientProfile?.name || 'N/A'}</p>
                     </div>
                     <div className="patient-field">
                       <p className="field-label">Patient ID</p>
-                      <p className="field-value">{patientProfile.id}</p>
+                      <p className="field-value">{patientProfile?.id || 'N/A'}</p>
                     </div>
                     <div className="patient-field">
                       <p className="field-label">Age</p>
-                      <p className="field-value">{patientProfile.age}</p>
+                      <p className="field-value">{patientProfile?.age || 'N/A'}</p>
                     </div>
                     <div className="patient-field">
                       <p className="field-label">Last Scan Date</p>
-                      <p className="field-value">{dashboardStats.lastScanDate ? formatDate(dashboardStats.lastScanDate) : 'No scans yet'}</p>
+                      <p className="field-value">{dashboardStats?.lastScanDate ? formatDate(dashboardStats.lastScanDate) : 'No scans yet'}</p>
                     </div>
                   </div>
 
                   <div className="patient-notes">
                     <p className="notes-label">Clinical Notes</p>
-                    <p className="notes-text">{patientProfile.clinicalNotes}</p>
+                    <p className="notes-text">{patientProfile?.clinicalNotes || 'No notes available'}</p>
                   </div>
                 </div>
               </div>
@@ -783,10 +967,10 @@ const PatientDashboard = ({ username, onLogout }) => {
           {activeTab === 'history' && (
             <>
               <div className="page-subheader">
-                <p>View and manage your uploaded CT scans and results. Total scans: {scanHistory.length}</p>
+                <p>View and manage your uploaded CT scans and results. Total scans: {(scanHistory || []).length}</p>
               </div>
 
-              {scanHistory.length > 0 ? (
+              {(scanHistory || []).length > 0 ? (
                 <div className="uploads-table-container">
                   <table className="uploads-table">
                     <thead>
@@ -798,7 +982,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {scanHistory.map(scan => (
+                      {(scanHistory || []).map(scan => (
                         <tr key={scan.scanId}>
                           <td>{formatDate(scan.uploadTime)}</td>
                           <td>
@@ -861,32 +1045,34 @@ const PatientDashboard = ({ username, onLogout }) => {
                     <h3>Your Care Team</h3>
                   </div>
                   <div className="contact-list">
-                    <div className="contact-item">
-                      <div className="contact-avatar">
-                        <img src="/api/placeholder/60/60" alt="Dr. Sarah Miller" />
-                      </div>
-                      <div className="contact-details">
-                        <h4>Dr. Sarah Miller</h4>
-                        <p>Pulmonology</p>
-                        <div className="contact-actions">
-                          <button className="contact-action-button" type="button">Message</button>
-                          <button className="contact-action-button" type="button">Call</button>
+                    {(doctors || []).map(doctor => (
+                      <div key={doctor.id} className="contact-item">
+                        <div className="contact-avatar">
+                          <img src={doctor.image} alt={doctor.name} />
+                        </div>
+                        <div className="contact-details">
+                          <h4>{doctor.name}</h4>
+                          <p>{doctor.specialty}</p>
+                          <div className="contact-actions">
+                            <button
+                              className="contact-action-button"
+                              type="button"
+                              onClick={() => {
+                                setMessageForm(prev => ({ ...prev, recipient: doctor.id }));
+                                document.getElementById('subject')?.focus();
+                              }}
+                            >
+                              Message
+                            </button>
+                            <button className="contact-action-button" type="button">
+                              <a href={`tel:${doctor.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                                Call
+                              </a>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="contact-item">
-                      <div className="contact-avatar">
-                        <img src="/api/placeholder/60/60" alt="Dr. James Rodriguez" />
-                      </div>
-                      <div className="contact-details">
-                        <h4>Dr. James Rodriguez</h4>
-                        <p>Oncology</p>
-                        <div className="contact-actions">
-                          <button className="contact-action-button" type="button">Message</button>
-                          <button className="contact-action-button" type="button">Call</button>
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
                 
@@ -894,56 +1080,101 @@ const PatientDashboard = ({ username, onLogout }) => {
                   <div className="message-header">
                     <h3>Send a Message</h3>
                   </div>
-                  <div className="message-form">
+                  <form className="message-form" onSubmit={handleSendMessage}>
                     <div className="form-group">
                       <label htmlFor="recipient">Recipient</label>
-                      <select id="recipient" name="recipient">
+                      <select
+                        id="recipient"
+                        name="recipient"
+                        value={messageForm.recipient}
+                        onChange={(e) => handleMessageFormChange('recipient', e.target.value)}
+                        required
+                      >
                         <option value="">Select a healthcare provider</option>
-                        <option value="1">Dr. Sarah Miller</option>
-                        <option value="2">Dr. James Rodriguez</option>
+                        {(doctors || []).map(doctor => (
+                          <option key={doctor.id} value={doctor.id}>
+                            {doctor.name} - {doctor.specialty}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="form-group">
                       <label htmlFor="subject">Subject</label>
-                      <input type="text" id="subject" name="subject" placeholder="Enter message subject" />
+                      <input
+                        type="text"
+                        id="subject"
+                        name="subject"
+                        placeholder="Enter message subject"
+                        value={messageForm.subject}
+                        onChange={(e) => handleMessageFormChange('subject', e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="form-group">
                       <label htmlFor="message">Message</label>
-                      <textarea id="message" name="message" rows="5" placeholder="Type your message here..."></textarea>
+                      <textarea
+                        id="message"
+                        name="message"
+                        rows="5"
+                        placeholder="Type your message here..."
+                        value={messageForm.message}
+                        onChange={(e) => handleMessageFormChange('message', e.target.value)}
+                        required
+                      ></textarea>
                     </div>
                     <div className="form-actions">
-                      <button className="cancel-button" type="button">Cancel</button>
-                      <button className="send-button" type="button">Send Message</button>
+                      <button
+                        className="cancel-button"
+                        type="button"
+                        onClick={() => setMessageForm({ recipient: '', subject: '', message: '' })}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="send-button"
+                        type="submit"
+                        disabled={isSendingMessage}
+                      >
+                        {isSendingMessage ? 'Sending...' : 'Send Message'}
+                      </button>
                     </div>
-                  </div>
+                  </form>
                 </div>
               </div>
               
               <div className="dashboard-card full-width">
                 <h3>Message History</h3>
                 <div className="message-history">
-                  <div className="message-history-item">
-                    <div className="message-history-header">
-                      <h4>Question about medication</h4>
-                      <span className="message-date">April 30, 2025</span>
-                    </div>
-                    <p className="message-recipient">To: Dr. Sarah Miller</p>
-                    <p className="message-preview">I've been experiencing some side effects from the new medication...</p>
-                    <div className="message-status">
-                      <span className="status-badge success">Replied</span>
-                    </div>
-                  </div>
-                  <div className="message-history-item">
-                    <div className="message-history-header">
-                      <h4>Follow-up appointment</h4>
-                      <span className="message-date">April 22, 2025</span>
-                    </div>
-                    <p className="message-recipient">To: Dr. James Rodriguez</p>
-                    <p className="message-preview">I wanted to confirm my follow-up appointment scheduled for...</p>
-                    <div className="message-status">
-                      <span className="status-badge success">Replied</span>
-                    </div>
-                  </div>
+                  {(messages || []).length > 0 ? (
+                    (messages || []).slice(0, 10).map(msg => {
+                      const content = msg.content || '';
+                      const subject = content.split('\n')[0]?.replace('Subject: ', '') || 'No Subject';
+                      const preview = content.split('\n\n')[1] || content;
+                      const isFromPatient = msg.senderRole === 'patient';
+
+                      return (
+                        <div className="message-history-item" key={msg.id}>
+                          <div className="message-history-header">
+                            <h4>{subject}</h4>
+                            <span className="message-date">{formatDate(msg.timestamp)}</span>
+                          </div>
+                          <p className="message-recipient">
+                            {isFromPatient ? `To: ${msg.receiverName}` : `From: ${msg.senderName}`}
+                          </p>
+                          <p className="message-preview">
+                            {preview.length > 100 ? preview.substring(0, 100) + '...' : preview}
+                          </p>
+                          <div className="message-status">
+                            <span className={`status-badge ${msg.read ? 'success' : 'warning'}`}>
+                              {msg.read ? 'Read' : 'Sent'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="no-data-message">No messages yet. Send a message to your healthcare provider above.</p>
+                  )}
                 </div>
               </div>
             </>
@@ -951,6 +1182,101 @@ const PatientDashboard = ({ username, onLogout }) => {
         </div>
       </main>
       
+      {/* Appointment Booking Modal */}
+      {showAppointmentModal && selectedDoctor && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h2>Book Appointment with {selectedDoctor.name}</h2>
+              <button className="close-button" onClick={() => setShowAppointmentModal(false)} type="button">
+                <X className="icon-sm" />
+              </button>
+            </div>
+
+            <form className="upload-form" onSubmit={handleSubmitAppointment}>
+              <div className="form-group">
+                <label htmlFor="apt-date">Appointment Date</label>
+                <input
+                  type="date"
+                  id="apt-date"
+                  name="apt-date"
+                  value={appointmentForm.date}
+                  onChange={(e) => handleAppointmentFormChange('date', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="apt-time">Appointment Time</label>
+                <select
+                  id="apt-time"
+                  name="apt-time"
+                  value={appointmentForm.time}
+                  onChange={(e) => handleAppointmentFormChange('time', e.target.value)}
+                  required
+                >
+                  <option value="">Select a time</option>
+                  <option value="9:00 AM">9:00 AM</option>
+                  <option value="10:00 AM">10:00 AM</option>
+                  <option value="11:00 AM">11:00 AM</option>
+                  <option value="1:00 PM">1:00 PM</option>
+                  <option value="2:00 PM">2:00 PM</option>
+                  <option value="3:00 PM">3:00 PM</option>
+                  <option value="4:00 PM">4:00 PM</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="apt-type">Appointment Type</label>
+                <select
+                  id="apt-type"
+                  name="apt-type"
+                  value={appointmentForm.type}
+                  onChange={(e) => handleAppointmentFormChange('type', e.target.value)}
+                  required
+                >
+                  <option value="consultation">Consultation</option>
+                  <option value="follow-up">Follow-up</option>
+                  <option value="scan-review">Scan Review</option>
+                  <option value="treatment">Treatment</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="apt-notes">Notes (Optional)</label>
+                <textarea
+                  id="apt-notes"
+                  name="apt-notes"
+                  rows="3"
+                  placeholder="Add any notes or concerns..."
+                  value={appointmentForm.notes}
+                  onChange={(e) => handleAppointmentFormChange('notes', e.target.value)}
+                ></textarea>
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={() => setShowAppointmentModal(false)}
+                  disabled={isBookingAppointment}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="upload-button"
+                  disabled={isBookingAppointment}
+                >
+                  {isBookingAppointment ? 'Booking...' : 'Book Appointment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="modal-overlay">

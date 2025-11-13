@@ -1,23 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, FileText, Layers, Settings, LogOut, Bell, Search, Home, Activity, Calendar, MessageCircle } from 'lucide-react';
 import './Dashboard.css';
+import {
+  getAllPatients,
+  getAllScans,
+  getDashboardStats,
+  formatDate
+} from './utils/unifiedDataManager';
 
 const DoctorDashboard = ({ username, onLogout }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [patients, setPatients] = useState([]);
+  const [scans, setScans] = useState([]);
+  const [stats, setStats] = useState({});
 
-  // Sample patient data
-  const [patients] = useState([
-    { id: 'PAT-2023-8642', name: 'Robert Johnson', age: 54, lastVisit: 'May 3, 2025', status: 'Follow-up Required', riskLevel: 'medium' },
-    { id: 'PAT-2023-7512', name: 'Sarah Williams', age: 62, lastVisit: 'May 1, 2025', status: 'Stable', riskLevel: 'low' },
-    { id: 'PAT-2023-9215', name: 'Michael Brown', age: 47, lastVisit: 'April 28, 2025', status: 'Urgent', riskLevel: 'high' },
-    { id: 'PAT-2023-6381', name: 'Emily Davis', age: 58, lastVisit: 'April 25, 2025', status: 'Stable', riskLevel: 'none' }
-  ]);
+  // Load data on mount
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const [recentScans] = useState([
-    { id: 1, patient: 'Robert Johnson', date: 'May 3, 2025', result: 'Areas Detected' },
-    { id: 2, patient: 'Sarah Williams', date: 'May 1, 2025', result: 'Reviewed' },
-    { id: 3, patient: 'Michael Brown', date: 'April 28, 2025', result: 'Areas Detected' }
-  ]);
+  const loadData = () => {
+    setPatients(getAllPatients());
+    setScans(getAllScans());
+    setStats(getDashboardStats());
+  };
+
+  // Get recent scans with patient names
+  const recentScans = scans.slice(0, 5).map(scan => {
+    const patient = patients.find(p => p.id === scan.patientId);
+    return {
+      ...scan,
+      patientName: patient?.fullName || scan.patientId,
+      result: scan.results?.detected ? 'Areas Detected' : 'Reviewed'
+    };
+  });
 
   return (
     <div className="dashboard-wrapper">
@@ -121,8 +137,8 @@ const DoctorDashboard = ({ username, onLogout }) => {
                     </div>
                     <div className="stat-card-content">
                       <p className="stat-card-label">Total Patients</p>
-                      <h3 className="stat-card-value">48</h3>
-                      <p className="stat-card-change positive">+8 this month</p>
+                      <h3 className="stat-card-value">{stats.totalPatients || 0}</h3>
+                      <p className="stat-card-change positive">+{stats.newPatientsThisMonth || 0} this month</p>
                     </div>
                   </div>
 
@@ -132,8 +148,8 @@ const DoctorDashboard = ({ username, onLogout }) => {
                     </div>
                     <div className="stat-card-content">
                       <p className="stat-card-label">Scans Reviewed</p>
-                      <h3 className="stat-card-value">156</h3>
-                      <p className="stat-card-change positive">+23 this week</p>
+                      <h3 className="stat-card-value">{stats.totalScans || 0}</h3>
+                      <p className="stat-card-change positive">+{stats.scansThisMonth || 0} this month</p>
                     </div>
                   </div>
 
@@ -143,8 +159,8 @@ const DoctorDashboard = ({ username, onLogout }) => {
                     </div>
                     <div className="stat-card-content">
                       <p className="stat-card-label">Appointments</p>
-                      <h3 className="stat-card-value">12</h3>
-                      <p className="stat-card-change">3 today</p>
+                      <h3 className="stat-card-value">{stats.upcomingAppointments || 0}</h3>
+                      <p className="stat-card-change">Upcoming</p>
                     </div>
                   </div>
 
@@ -153,8 +169,8 @@ const DoctorDashboard = ({ username, onLogout }) => {
                       <Activity size={24} />
                     </div>
                     <div className="stat-card-content">
-                      <p className="stat-card-label">Urgent Cases</p>
-                      <h3 className="stat-card-value">5</h3>
+                      <p className="stat-card-label">High Risk Scans</p>
+                      <h3 className="stat-card-value">{stats.highRiskScans || 0}</h3>
                       <p className="stat-card-change warning">Requires attention</p>
                     </div>
                   </div>
@@ -177,23 +193,31 @@ const DoctorDashboard = ({ username, onLogout }) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {recentScans.map(scan => (
-                          <tr key={scan.id}>
-                            <td>{scan.patient}</td>
-                            <td>{scan.date}</td>
-                            <td>
-                              <span className={`status-badge ${
-                                scan.result === 'Reviewed' ? 'success' :
-                                scan.result === 'Areas Detected' ? 'warning' : 'info'
-                              }`}>
-                                {scan.result}
-                              </span>
-                            </td>
-                            <td>
-                              <button className="table-action-button">Review</button>
+                        {recentScans.length > 0 ? (
+                          recentScans.map(scan => (
+                            <tr key={scan.scanId}>
+                              <td>{scan.patientName}</td>
+                              <td>{formatDate(scan.uploadTime)}</td>
+                              <td>
+                                <span className={`status-badge ${
+                                  scan.result === 'Reviewed' ? 'success' :
+                                  scan.result === 'Areas Detected' ? 'warning' : 'info'
+                                }`}>
+                                  {scan.result}
+                                </span>
+                              </td>
+                              <td>
+                                <button className="table-action-button">Review</button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" style={{ textAlign: 'center', padding: '2rem' }}>
+                              No scans available yet. Scans uploaded by patients will appear here.
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -250,33 +274,52 @@ const DoctorDashboard = ({ username, onLogout }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {patients.map(patient => (
-                        <tr key={patient.id}>
-                          <td>{patient.id}</td>
-                          <td>{patient.name}</td>
-                          <td>{patient.age}</td>
-                          <td>{patient.lastVisit}</td>
-                          <td>
-                            <span className={`status-badge ${
-                              patient.status === 'Stable' ? 'success' :
-                              patient.status === 'Urgent' ? 'danger' : 'warning'
-                            }`}>
-                              {patient.status}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`risk-badge-large risk-${patient.riskLevel}`}>
-                              {patient.riskLevel.toUpperCase()}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="action-buttons">
-                              <button className="table-action-button">View</button>
-                              <button className="table-action-button">Edit</button>
-                            </div>
+                      {patients.length > 0 ? (
+                        patients.map(patient => {
+                          // Get patient's scans to determine risk level
+                          const patientScans = scans.filter(s => s.patientId === patient.id);
+                          const highestRisk = patientScans.reduce((max, scan) => {
+                            const riskLevels = { none: 0, low: 1, medium: 2, high: 3 };
+                            const scanRisk = riskLevels[scan.results?.riskLevel] || 0;
+                            return scanRisk > max ? scanRisk : max;
+                          }, 0);
+                          const riskLevel = ['none', 'low', 'medium', 'high'][highestRisk];
+
+                          return (
+                            <tr key={patient.id}>
+                              <td>{patient.id}</td>
+                              <td>{patient.fullName}</td>
+                              <td>{patient.age}</td>
+                              <td>{patient.lastVisit || 'N/A'}</td>
+                              <td>
+                                <span className={`status-badge ${
+                                  patient.status === 'Stable' ? 'success' :
+                                  patient.status === 'Urgent' ? 'danger' : 'warning'
+                                }`}>
+                                  {patient.status || 'N/A'}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`risk-badge-large risk-${riskLevel}`}>
+                                  {riskLevel.toUpperCase()}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="action-buttons">
+                                  <button className="table-action-button">View</button>
+                                  <button className="table-action-button">Edit</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
+                            No patients registered yet.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
