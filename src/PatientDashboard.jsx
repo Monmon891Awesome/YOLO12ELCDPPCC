@@ -224,8 +224,14 @@ const PatientDashboard = ({ username, onLogout }) => {
     setIsBookingAppointment(true);
 
     try {
+      // Get current patient profile
+      const profile = getCurrentPatientProfile();
+      if (!profile) {
+        throw new Error('Patient profile not found. Please log in again.');
+      }
+
       const appointmentData = {
-        patientId: patientProfile.id,
+        patientId: profile.id,
         doctorId: selectedDoctor.id,
         doctor: selectedDoctor.name,
         date: appointmentForm.date,
@@ -239,10 +245,7 @@ const PatientDashboard = ({ username, onLogout }) => {
 
       if (savedAppointment) {
         // Refresh appointments list
-        const profile = getCurrentPatientProfile();
-        if (profile) {
-          setAppointments(getAppointmentsByPatient(profile.id));
-        }
+        setAppointments(getAppointmentsByPatient(profile.id));
 
         // Close modal and show success
         setShowAppointmentModal(false);
