@@ -20,6 +20,8 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
+    # Install CPU-only PyTorch first to avoid pulling large CUDA wheels on Linux builders
+    pip install --no-cache-dir torch==2.9.1+cpu torchvision==0.24.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy backend files
