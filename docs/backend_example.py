@@ -24,7 +24,7 @@ import os
 # Uncomment when you have your YOLOv12 model
 # from ultralytics import YOLO
 
-app = FastAPI(title="LungEvity YOLOv12 API", version="1.0.0")
+app = FastAPI(title="PneumAI YOLOv12 API", version="1.0.0")
 
 # Enable CORS
 app.add_middleware(

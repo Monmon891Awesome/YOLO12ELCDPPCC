@@ -1,5 +1,5 @@
 """
-YOLOv12 Lung Cancer Detection Backend Server
+PneumAI - YOLOv12 Lung Cancer Detection Backend Server
 FastAPI implementation with YOLO model integration
 
 Installation:

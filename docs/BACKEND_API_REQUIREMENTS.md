@@ -1,6 +1,6 @@
 # YOLOv12 Backend API Requirements
 
-This document specifies the backend API endpoints required for the LungEvity web application to integrate with the YOLOv12 lung cancer detection model.
+This document specifies the backend API endpoints required for the PneumAI web application to integrate with the YOLOv12 lung cancer detection model.
 
 ## Base URL
 

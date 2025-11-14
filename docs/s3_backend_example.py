@@ -24,7 +24,7 @@ from typing import Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-app = FastAPI(title="LungEvity S3 Storage API", version="1.0.0")
+app = FastAPI(title="PneumAI S3 Storage API", version="1.0.0")
 
 # Enable CORS
 app.add_middleware(
@@ -39,7 +39,7 @@ app.add_middleware(
 )
 
 # AWS S3 Configuration
-S3_BUCKET = os.getenv("S3_BUCKET", "lungevity-scans")
+S3_BUCKET = os.getenv("S3_BUCKET", "pneumai-scans")
 S3_REGION = os.getenv("S3_REGION", "us-east-1")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")

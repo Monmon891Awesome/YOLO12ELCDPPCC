@@ -38,7 +38,7 @@ python start_backend.py
 ✓ All required dependencies are installed
 ✓ All checks passed!
 
-Starting LungEvity YOLOv12 Backend Server
+Starting PneumAI YOLOv12 Backend Server
 Server will be available at:
   - Local:   http://localhost:8000
   - Network: http://0.0.0.0:8000

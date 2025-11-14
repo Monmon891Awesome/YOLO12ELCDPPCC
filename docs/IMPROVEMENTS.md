@@ -1,4 +1,4 @@
-# LungEvity Platform - Improvements & Roadmap
+# PneumAI Platform - Improvements & Roadmap
 
 ## Overview
 This document outlines current implementations, planned improvements, and future features for the LungEvity platform.
@@ -315,21 +315,21 @@ This document outlines current implementations, planned improvements, and future
 ### Environment Variables Needed
 ```env
 # AWS Configuration
-REACT_APP_S3_BUCKET=lungevity-scans
+REACT_APP_S3_BUCKET=pneumai-scans
 REACT_APP_S3_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 
 # API Endpoints
-REACT_APP_API_URL=https://api.lungevity.com
-REACT_APP_YOLO_API_URL=https://yolo.lungevity.com
+REACT_APP_API_URL=https://api.pneumai.com
+REACT_APP_YOLO_API_URL=https://yolo.pneumai.com
 
 # Security
 REACT_APP_ENCRYPTION_KEY=your_encryption_key
 REACT_APP_JWT_SECRET=your_jwt_secret
 
 # Database
-DATABASE_URL=postgresql://user:pass@host:5432/lungevity
+DATABASE_URL=postgresql://user:pass@host:5432/pneumai
 ```
 
 ---

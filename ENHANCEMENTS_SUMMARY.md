@@ -1,4 +1,4 @@
-# LungEvity Enhancements Summary
+# PneumAI Enhancements Summary
 
 ## ✅ What Was Just Completed
 
@@ -319,8 +319,8 @@ Make it installable:
 ```javascript
 // Add to public/manifest.json
 {
-  "name": "LungEvity",
-  "short_name": "LungEvity",
+   "name": "PneumAI",
+   "short_name": "PneumAI",
   "theme_color": "#4f46e5",
   "background_color": "#ffffff",
   "display": "standalone",

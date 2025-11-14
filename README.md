@@ -1,4 +1,4 @@
-# LungEvity - YOLOv12-Powered Lung Cancer Detection Platform
+# PneumAI - YOLOv12-Powered Lung Cancer Detection Platform
 
 An integrated platform for early lung cancer detection and patient-physician collaborative care, powered by YOLOv12.
 
@@ -90,7 +90,7 @@ YOLO12ELCDPPCC-1/
 │   ├── components/      # React components
 │   ├── App.js          # Main app with routing
 │   ├── index.js        # Entry point
-│   ├── LungEvityUI.jsx # Landing page
+│   ├── PneumAIUI.jsx # Landing page
 │   ├── Login.jsx       # Login page
 │   ├── AdminDashboard.jsx
 │   ├── PatientDashboard.jsx
@@ -255,7 +255,7 @@ The platform includes comprehensive AWS S3 integration for secure image storage:
 
 1. **Create S3 Bucket**:
 ```bash
-aws s3 mb s3://lungevity-scans --region us-east-1
+aws s3 mb s3://pneumai-scans --region us-east-1
 ```
 
 2. **Configure IAM Permissions**:
@@ -270,7 +270,7 @@ aws s3 mb s3://lungevity-scans --region us-east-1
         "s3:GetObject",
         "s3:DeleteObject"
       ],
-      "Resource": "arn:aws:s3:::lungevity-scans/*"
+      "Resource": "arn:aws:s3:::pneumai-scans/*"
     }
   ]
 }
@@ -278,7 +278,7 @@ aws s3 mb s3://lungevity-scans --region us-east-1
 
 3. **Set Environment Variables**:
 ```env
-REACT_APP_S3_BUCKET=lungevity-scans
+REACT_APP_S3_BUCKET=pneumai-scans
 REACT_APP_S3_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key

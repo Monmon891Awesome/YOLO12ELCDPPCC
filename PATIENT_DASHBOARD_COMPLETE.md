@@ -184,11 +184,11 @@ Your Patient Dashboard has been completely redesigned with persistent data stora
 ```
 
 ### Storage Keys:
-- `lungevity_patient_profile` - Patient information
-- `lungevity_scan_history` - Array of scan objects (max 50)
-- `lungevity_appointments` - Appointments list
-- `lungevity_doctors` - Doctor contacts
-- `lungevity_messages` - Message history
+- `pneumai_patient_profile` - Patient information
+- `pneumai_scan_history` - Array of scan objects (max 50)
+- `pneumai_appointments` - Appointments list
+- `pneumai_doctors` - Doctor contacts
+- `pneumai_messages` - Message history
 
 ---
 

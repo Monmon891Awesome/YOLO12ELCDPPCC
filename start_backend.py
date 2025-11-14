@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Startup script for YOLOv12 Lung Cancer Detection Backend Server
+Startup script for the PneumAI YOLOv12 Lung Cancer Detection Backend Server
 
 This script:
 1. Checks if best.pt model file exists
@@ -138,7 +138,7 @@ def start_server():
     port = int(os.environ.get("PORT", 8000))
 
     print("\n" + "=" * 70)
-    print("Starting LungEvity YOLOv12 Backend Server")
+    print("Starting PneumAI YOLOv12 Backend Server")
     print("=" * 70)
     print(f"\nServer will be available at:")
     print(f"  - Local:   http://localhost:{port}")
@@ -172,7 +172,7 @@ def start_server():
 def main():
     """Main function"""
     print("\n" + "=" * 70)
-    print("YOLOv12 Lung Cancer Detection Backend - Startup")
+    print("PneumAI - YOLOv12 Lung Cancer Detection Backend - Startup")
     print("=" * 70 + "\n")
 
     # Check prerequisites

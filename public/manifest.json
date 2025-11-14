@@ -1,6 +1,6 @@
 {
-  "short_name": "LungEvity",
-  "name": "LungEvity - Lung Cancer Detection Platform",
+  "short_name": "PneumAI",
+  "name": "PneumAI - Lung Cancer Detection Platform",
   "icons": [
     {
       "src": "favicon.ico",

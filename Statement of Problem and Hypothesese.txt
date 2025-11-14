@@ -1,5 +1,5 @@
 STATEMENT OF PROBLEM AND HYPOTHESES
-LungEvity: YOLOv12-Powered Lung Cancer Detection Platform
+PneumAI: YOLOv12-Powered Lung Cancer Detection Platform
 ================================================================================
 
 1. BACKGROUND OF THE STUDY
@@ -129,7 +129,7 @@ H2b: The platform will facilitate at least 40% more patient-physician interactio
 
 
 H3 (Tertiary Hypothesis):
-Patients using the LungEvity platform will demonstrate significantly higher
+Patients using the PneumAI platform will demonstrate significantly higher
 satisfaction scores (e80% positive feedback) regarding:
 - Understanding of their diagnosis
 - Confidence in the results

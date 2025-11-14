@@ -263,8 +263,8 @@ npm install sharp
 ```json
 // public/manifest.json
 {
-  "short_name": "LungEvity",
-  "name": "LungEvity AI Lung Cancer Detection",
+  "short_name": "PneumAI",
+  "name": "PneumAI AI Lung Cancer Detection",
   "icons": [
     {
       "src": "favicon.ico",

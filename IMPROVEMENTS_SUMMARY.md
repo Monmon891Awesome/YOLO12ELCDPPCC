@@ -50,7 +50,7 @@ All requested improvements have been successfully implemented! The platform now 
 ### 5. **Login System Updates**
 - ✅ **Logo Display**: SC2 Medic logo on login screen
 - ✅ **Doctor Login Support**: Separate tab for healthcare professionals
-- ✅ **Demo Credentials**: admin@lungevity.com / admin123 for testing
+- ✅ **Demo Credentials**: admin@pneumai.com / admin123 for testing
 - ✅ **User Type Detection**: Automatically routes to correct dashboard
 
 ---
@@ -58,7 +58,7 @@ All requested improvements have been successfully implemented! The platform now 
 ## 🚀 How to Use
 
 ### For Admins (Creating Doctor Accounts):
-1. Login as admin: `admin@lungevity.com` / `admin123`
+1. Login as admin: `admin@pneumai.com` / `admin123`
 2. Navigate to "Doctors" tab in sidebar
 3. Click "Add New Doctor" button
 4. Fill in the form:
@@ -136,7 +136,7 @@ All requested improvements have been successfully implemented! The platform now 
 ## 🧪 Testing
 
 ### Test Admin Account:
-- Email: `admin@lungevity.com`
+- Email: `admin@pneumai.com`
 - Password: `admin123`
 - Access: Admin Dashboard with doctor creation
 
@@ -161,8 +161,8 @@ All data is stored in localStorage:
 - `pneumAIUsers` - All user accounts (patients, doctors, admin)
 - `pneumAIDoctors` - Doctor-specific data
 - `pneumAISession` - Current user session
-- `lungevity_scan_history` - Patient scan records
-- `lungevity_appointments` - Appointment data
+- `pneumai_scan_history` - Patient scan records
+- `pneumai_appointments` - Appointment data
 
 ---
 
