@@ -358,127 +358,200 @@ const DoctorDashboard = ({ username, onLogout }) => {
               <>
                 <div className="admin-header">
                   <h1>CT Scan Analysis & Review</h1>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <select
-                      className="scan-selector"
-                      value={selectedScan?.id || ''}
-                      onChange={(e) => {
-                        const scan = scans.find(s => s.id === e.target.value);
-                        setSelectedScan(scan);
-                      }}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db',
-                        fontSize: '0.9rem'
-                      }}
-                    >
-                      {scans.map(scan => {
-                        const patient = patients.find(p => p.id === scan.patientId);
-                        const commentCount = getScanCommentCount(scan.id);
-                        return (
-                          <option key={scan.id} value={scan.id}>
-                            {patient?.fullName || scan.patientId} - {formatDate(scan.uploadTime)}
-                            {commentCount > 0 && ` (${commentCount} comments)`}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
+                  <p style={{ color: '#666', fontSize: '0.9rem', marginTop: '0.5rem' }}>Review patient CT scans and provide professional feedback</p>
                 </div>
 
-                {selectedScan ? (
-                  <div className="doctor-scans-grid">
-                    <div className="scan-viewer-large">
-                      <img
-                        src={selectedScan.annotatedImageUrl || "/assets/lungs.png"}
-                        alt="CT Scan"
-                        className="scan-image-large"
-                      />
-                      <div className="scan-controls">
-                        <button
-                          className="scan-control-button"
-                          onClick={() => {
-                            const currentIndex = scans.findIndex(s => s.id === selectedScan.id);
-                            if (currentIndex > 0) {
-                              setSelectedScan(scans[currentIndex - 1]);
-                            }
-                          }}
-                          disabled={scans.findIndex(s => s.id === selectedScan.id) === 0}
-                        >
-                          Previous
-                        </button>
-                        <button
-                          className="scan-control-button"
-                          onClick={() => {
-                            const currentIndex = scans.findIndex(s => s.id === selectedScan.id);
-                            if (currentIndex < scans.length - 1) {
-                              setSelectedScan(scans[currentIndex + 1]);
-                            }
-                          }}
-                          disabled={scans.findIndex(s => s.id === selectedScan.id) === scans.length - 1}
-                        >
-                          Next
-                        </button>
-                      </div>
+                <div style={{ display: 'grid', gap: '1.5rem' }}>
+                  {/* Statistics Cards */}
+                  <div className="dashboard-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <Layers className="sidebar-icon" style={{ color: '#7B6BBE' }} />
+                      <h3 style={{ margin: 0 }}>Scan Statistics</h3>
                     </div>
-
-                    <div className="scan-analysis-panel">
-                      <h3>AI Analysis Results</h3>
-                      <div className="analysis-metrics">
-                        <div className="metric-item">
-                          <span className="metric-label">Analysis Status</span>
-                          <span className="metric-value">{selectedScan.status || 'Completed'}</span>
-                        </div>
-                        <div className="metric-item">
-                          <span className="metric-label">Attention Level</span>
-                          <span className={`risk-badge-large risk-${selectedScan.results?.riskLevel || 'medium'}`}>
-                            {selectedScan.results?.detected ? 'REQUIRES REVIEW' : 'REVIEWED'}
-                          </span>
-                        </div>
-                        <div className="metric-item">
-                          <span className="metric-label">Findings</span>
-                          <span className="metric-value">
-                            {selectedScan.results?.detected ? 'Abnormalities Present' : 'No Issues Detected'}
-                          </span>
-                        </div>
-                        <div className="metric-item">
-                          <span className="metric-label">Comments</span>
-                          <span className="metric-value">{getScanCommentCount(selectedScan.id)}</span>
-                        </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      <div style={{ padding: '1rem', background: '#f0f9ff', borderRadius: '8px', textAlign: 'center' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#666', fontSize: '0.875rem' }}>Total Scans</h4>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0284c7', margin: 0 }}>{scans.length}</p>
                       </div>
-
-                      <div className="analysis-actions">
-                        <button className="primary-button">Generate Report</button>
-                        <button className="secondary-button">Request Second Opinion</button>
+                      <div style={{ padding: '1rem', background: '#f0fdf4', borderRadius: '8px', textAlign: 'center' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#666', fontSize: '0.875rem' }}>No Risk</h4>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a', margin: 0 }}>
+                          {scans.filter(s => s.results?.riskLevel === 'none').length}
+                        </p>
+                      </div>
+                      <div style={{ padding: '1rem', background: '#fef3c7', borderRadius: '8px', textAlign: 'center' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#666', fontSize: '0.875rem' }}>Attention Needed</h4>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ea580c', margin: 0 }}>
+                          {scans.filter(s => s.results?.riskLevel === 'medium' || s.results?.riskLevel === 'low').length}
+                        </p>
+                      </div>
+                      <div style={{ padding: '1rem', background: '#fee2e2', borderRadius: '8px', textAlign: 'center' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#666', fontSize: '0.875rem' }}>High Risk</h4>
+                        <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626', margin: 0 }}>
+                          {scans.filter(s => s.results?.riskLevel === 'high').length}
+                        </p>
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                    <p>No scans available for review</p>
-                  </div>
-                )}
 
-                {selectedScan && (
-                  <div style={{ marginTop: '2rem' }}>
-                    <ScanCommentForm
-                      scanId={selectedScan.id}
-                      currentUser={currentUser}
-                      parentComment={replyToComment}
-                      onSuccess={handleCommentSuccess}
-                      onCancel={() => setReplyToComment(null)}
-                    />
-
-                    <ScanCommentThread
-                      scanId={selectedScan.id}
-                      currentUser={currentUser}
-                      onReply={handleReply}
-                      onDelete={handleCommentSuccess}
-                      refreshTrigger={commentRefresh}
-                    />
+                  {/* Scans Table */}
+                  <div className="dashboard-card">
+                    <h3>All Patient CT Scans</h3>
+                    {scans.length > 0 ? (
+                      <div className="admin-table-container">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Patient</th>
+                              <th>Upload Date</th>
+                              <th>Risk Level</th>
+                              <th>Detection</th>
+                              <th>Comments</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {scans.map(scan => {
+                              const scanId = scan.scanId || scan.id;
+                              const patient = patients.find(p => p.id === scan.patientId);
+                              const commentCount = getScanCommentCount(scanId);
+                              return (
+                                <tr key={scanId}>
+                                  <td><strong>{patient?.fullName || patient?.firstName || scan.patientId}</strong></td>
+                                  <td>{formatDate(scan.uploadTime)}</td>
+                                  <td>
+                                    <span className={`status-badge ${
+                                      scan.results?.riskLevel === 'none' ? 'success' :
+                                      scan.results?.riskLevel === 'low' ? 'info' :
+                                      scan.results?.riskLevel === 'medium' ? 'warning' :
+                                      scan.results?.riskLevel === 'high' ? 'danger' : ''
+                                    }`}>
+                                      {(scan.results?.riskLevel || 'unknown').toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {scan.results?.detected ? (
+                                      <span className="badge-warning">Areas Detected</span>
+                                    ) : (
+                                      <span className="badge-success">None Detected</span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <span style={{
+                                      padding: '0.25rem 0.5rem',
+                                      background: commentCount > 0 ? '#dbeafe' : '#f3f4f6',
+                                      color: commentCount > 0 ? '#1e40af' : '#6b7280',
+                                      borderRadius: '4px',
+                                      fontSize: '0.875rem',
+                                      fontWeight: '500'
+                                    }}>
+                                      {commentCount} comment{commentCount !== 1 ? 's' : ''}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <button
+                                      className="table-action-button"
+                                      onClick={() => setSelectedScan(scan)}
+                                      style={{ background: 'linear-gradient(135deg, #7B6BBE 0%, #9B8BCE 100%)', color: 'white', border: 'none' }}
+                                    >
+                                      Review & Comment
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
+                        <Layers size={48} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
+                        <p style={{ fontSize: '1.1rem', fontWeight: '500' }}>No CT scans uploaded yet</p>
+                        <p style={{ fontSize: '0.9rem', color: '#9ca3af' }}>Scans uploaded by patients will appear here for review</p>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Selected Scan Detail View */}
+                  {selectedScan && (
+                    <div className="dashboard-card" style={{ padding: '2rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h3 style={{ margin: 0 }}>Scan Review: {patients.find(p => p.id === selectedScan.patientId)?.fullName || selectedScan.patientId}</h3>
+                        <button
+                          onClick={() => setSelectedScan(null)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid #d1d5db',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#6b7280'
+                          }}
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                        <div>
+                          <img
+                            src={selectedScan.annotatedImageUrl || selectedScan.imageUrl || "/assets/lungs.png"}
+                            alt="CT Scan"
+                            style={{
+                              width: '100%',
+                              borderRadius: '8px',
+                              border: '2px solid #e5e7eb',
+                              maxHeight: '400px',
+                              objectFit: 'contain'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <h4 style={{ marginTop: 0 }}>AI Analysis Results</h4>
+                          <div style={{ display: 'grid', gap: '1rem' }}>
+                            <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
+                              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Risk Level</span>
+                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 'bold', color: '#374151' }}>
+                                {(selectedScan.results?.riskLevel || 'Unknown').toUpperCase()}
+                              </p>
+                            </div>
+                            <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
+                              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Detection Status</span>
+                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 'bold', color: '#374151' }}>
+                                {selectedScan.results?.detected ? 'Areas Detected' : 'No Issues Detected'}
+                              </p>
+                            </div>
+                            <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
+                              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Confidence</span>
+                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 'bold', color: '#374151' }}>
+                                {((selectedScan.results?.confidence || 0) * 100).toFixed(1)}%
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '2rem' }}>
+                        <h4>Professional Feedback & Comments</h4>
+                        <ScanCommentForm
+                          scanId={selectedScan.scanId || selectedScan.id}
+                          currentUser={currentUser}
+                          parentComment={replyToComment}
+                          onSuccess={handleCommentSuccess}
+                          onCancel={() => setReplyToComment(null)}
+                        />
+
+                        <ScanCommentThread
+                          scanId={selectedScan.scanId || selectedScan.id}
+                          currentUser={currentUser}
+                          onReply={handleReply}
+                          onDelete={handleCommentSuccess}
+                          refreshTrigger={commentRefresh}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
