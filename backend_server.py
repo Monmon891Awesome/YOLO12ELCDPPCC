@@ -13,9 +13,10 @@ python start_backend.py
 """
 
 import uvicorn
-from fastapi import FastAPI, File, UploadFile, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, UploadFile, HTTPException, WebSocket, WebSocketDisconnect, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel
 import cv2
 import numpy as np
 from PIL import Image
@@ -23,7 +24,7 @@ import io
 import os
 import traceback
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 from ultralytics import YOLO
 import pydicom
 import json
@@ -537,6 +538,123 @@ async def websocket_scans(websocket: WebSocket):
     except Exception as e:
         print(f"WebSocket error: {e}")
         manager.disconnect(websocket)
+
+
+# ============= SCAN COMMENTS API =============
+
+# Pydantic models for request/response
+class CommentCreate(BaseModel):
+    scan_id: str
+    user_id: str
+    user_role: str
+    user_name: str
+    comment_text: str
+    parent_comment_id: Optional[int] = None
+
+class CommentUpdate(BaseModel):
+    comment_text: str
+
+class Comment(BaseModel):
+    id: int
+    scan_id: str
+    user_id: str
+    user_role: str
+    user_name: str
+    comment_text: str
+    parent_comment_id: Optional[int]
+    created_at: datetime
+    updated_at: datetime
+
+# In-memory storage for comments (for localStorage fallback)
+scan_comments: Dict[str, List[dict]] = {}
+
+@app.post("/api/v1/scan/{scan_id}/comments", response_model=dict)
+async def add_comment(scan_id: str, comment: CommentCreate):
+    """Add a comment to a scan"""
+    try:
+        # Generate a unique comment ID
+        comment_id = len(scan_comments.get(scan_id, [])) + 1
+
+        # Create comment object
+        new_comment = {
+            "id": comment_id,
+            "scan_id": scan_id,
+            "user_id": comment.user_id,
+            "user_role": comment.user_role,
+            "user_name": comment.user_name,
+            "comment_text": comment.comment_text,
+            "parent_comment_id": comment.parent_comment_id,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+
+        # Store in memory
+        if scan_id not in scan_comments:
+            scan_comments[scan_id] = []
+        scan_comments[scan_id].append(new_comment)
+
+        return {
+            "success": True,
+            "comment": new_comment,
+            "message": "Comment added successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error adding comment: {str(e)}")
+
+@app.get("/api/v1/scan/{scan_id}/comments")
+async def get_comments(scan_id: str):
+    """Get all comments for a scan"""
+    try:
+        comments = scan_comments.get(scan_id, [])
+        return {
+            "success": True,
+            "comments": comments,
+            "count": len(comments)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving comments: {str(e)}")
+
+@app.put("/api/v1/scan/comment/{comment_id}")
+async def update_comment(comment_id: int, update: CommentUpdate, scan_id: str = None):
+    """Update a comment"""
+    try:
+        # Find and update the comment
+        found = False
+        for sid, comments in scan_comments.items():
+            for comment in comments:
+                if comment["id"] == comment_id:
+                    comment["comment_text"] = update.comment_text
+                    comment["updated_at"] = datetime.utcnow().isoformat()
+                    found = True
+                    return {
+                        "success": True,
+                        "comment": comment,
+                        "message": "Comment updated successfully"
+                    }
+
+        if not found:
+            raise HTTPException(status_code=404, detail="Comment not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating comment: {str(e)}")
+
+@app.delete("/api/v1/scan/comment/{comment_id}")
+async def delete_comment(comment_id: int):
+    """Delete a comment"""
+    try:
+        # Find and delete the comment
+        for sid, comments in scan_comments.items():
+            for i, comment in enumerate(comments):
+                if comment["id"] == comment_id:
+                    deleted_comment = comments.pop(i)
+                    return {
+                        "success": True,
+                        "message": "Comment deleted successfully",
+                        "deleted_comment": deleted_comment
+                    }
+
+        raise HTTPException(status_code=404, detail="Comment not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting comment: {str(e)}")
 
 
 if __name__ == "__main__":

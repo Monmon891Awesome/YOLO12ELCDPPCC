@@ -63,7 +63,7 @@
 
 .login-info {
   display: none;
-  background-color: var(--blue-800);
+  background: linear-gradient(135deg, #7B6BBE 0%, #8B7BC8 50%, #A78BFA 100%);
   color: white;
   padding: 3rem;
   position: relative;

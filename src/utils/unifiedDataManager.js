@@ -23,6 +23,7 @@ const STORAGE_KEYS = {
   // Appointments & Communication
   APPOINTMENTS: 'pneumai_appointments',
   MESSAGES: 'pneumai_messages',
+  SCAN_COMMENTS: 'pneumai_scan_comments',
 
   // System
   SETTINGS: 'pneumai_settings',
@@ -896,6 +897,188 @@ export function getRiskLevelLabel(riskLevel) {
     none: 'No Risk'
   };
   return labels[riskLevel] || 'Unknown';
+}
+
+// ============ SCAN COMMENTS MANAGEMENT ============
+
+/**
+ * Add a comment to a scan
+ */
+export function addScanComment(scanId, commentData) {
+  try {
+    const comments = getFromStorage(STORAGE_KEYS.SCAN_COMMENTS) || {};
+
+    if (!comments[scanId]) {
+      comments[scanId] = [];
+    }
+
+    // Generate unique comment ID
+    const commentId = Date.now();
+
+    const newComment = {
+      id: commentId,
+      scanId,
+      userId: commentData.userId,
+      userRole: commentData.userRole,
+      userName: commentData.userName,
+      commentText: commentData.commentText,
+      parentCommentId: commentData.parentCommentId || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    comments[scanId].push(newComment);
+    saveToStorage(STORAGE_KEYS.SCAN_COMMENTS, comments);
+
+    return newComment;
+  } catch (error) {
+    console.error('Error adding scan comment:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all comments for a specific scan
+ */
+export function getScanComments(scanId) {
+  try {
+    const comments = getFromStorage(STORAGE_KEYS.SCAN_COMMENTS) || {};
+    return comments[scanId] || [];
+  } catch (error) {
+    console.error('Error getting scan comments:', error);
+    return [];
+  }
+}
+
+/**
+ * Get threaded comments (organized by parent-child relationship)
+ */
+export function getThreadedComments(scanId) {
+  try {
+    const allComments = getScanComments(scanId);
+
+    // Separate root comments and replies
+    const rootComments = allComments.filter(c => !c.parentCommentId);
+    const replies = allComments.filter(c => c.parentCommentId);
+
+    // Build threaded structure
+    const threaded = rootComments.map(comment => ({
+      ...comment,
+      replies: replies.filter(r => r.parentCommentId === comment.id)
+    }));
+
+    return threaded;
+  } catch (error) {
+    console.error('Error getting threaded comments:', error);
+    return [];
+  }
+}
+
+/**
+ * Update a comment
+ */
+export function updateScanComment(commentId, updates) {
+  try {
+    const comments = getFromStorage(STORAGE_KEYS.SCAN_COMMENTS) || {};
+
+    // Find and update the comment
+    for (const scanId in comments) {
+      const commentIndex = comments[scanId].findIndex(c => c.id === commentId);
+      if (commentIndex !== -1) {
+        comments[scanId][commentIndex] = {
+          ...comments[scanId][commentIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        saveToStorage(STORAGE_KEYS.SCAN_COMMENTS, comments);
+        return comments[scanId][commentIndex];
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error updating scan comment:', error);
+    return null;
+  }
+}
+
+/**
+ * Delete a comment
+ */
+export function deleteScanComment(commentId) {
+  try {
+    const comments = getFromStorage(STORAGE_KEYS.SCAN_COMMENTS) || {};
+
+    // Find and delete the comment
+    for (const scanId in comments) {
+      const commentIndex = comments[scanId].findIndex(c => c.id === commentId);
+      if (commentIndex !== -1) {
+        comments[scanId].splice(commentIndex, 1);
+        saveToStorage(STORAGE_KEYS.SCAN_COMMENTS, comments);
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error deleting scan comment:', error);
+    return false;
+  }
+}
+
+/**
+ * Get comment count for a scan
+ */
+export function getScanCommentCount(scanId) {
+  try {
+    const comments = getScanComments(scanId);
+    return comments.length;
+  } catch (error) {
+    console.error('Error getting scan comment count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get unread comments for a user (based on role)
+ */
+export function getUnreadCommentsForUser(userId, userRole) {
+  try {
+    const allComments = getFromStorage(STORAGE_KEYS.SCAN_COMMENTS) || {};
+    let unreadCount = 0;
+
+    // For patients: count doctor/admin comments on their scans
+    // For doctors: count patient replies on scans they've commented on
+    // For admins: count all new comments
+
+    for (const scanId in allComments) {
+      const comments = allComments[scanId];
+
+      if (userRole === 'patient') {
+        // Count doctor/admin comments on patient's scans
+        unreadCount += comments.filter(c =>
+          (c.userRole === 'doctor' || c.userRole === 'admin') &&
+          !c.readBy?.includes(userId)
+        ).length;
+      } else if (userRole === 'doctor') {
+        // Count patient replies where doctor has commented
+        const doctorCommentIds = comments.filter(c => c.userId === userId).map(c => c.id);
+        unreadCount += comments.filter(c =>
+          c.userRole === 'patient' &&
+          doctorCommentIds.includes(c.parentCommentId) &&
+          !c.readBy?.includes(userId)
+        ).length;
+      } else if (userRole === 'admin') {
+        // Admins see all unread
+        unreadCount += comments.filter(c => !c.readBy?.includes(userId)).length;
+      }
+    }
+
+    return unreadCount;
+  } catch (error) {
+    console.error('Error getting unread comments:', error);
+    return 0;
+  }
 }
 
 // Export storage keys for reference

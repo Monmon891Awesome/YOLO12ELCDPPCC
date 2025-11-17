@@ -101,6 +101,19 @@ CREATE TABLE IF NOT EXISTS scan_images (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Scan comments table (for doctor/admin/patient feedback on scans)
+CREATE TABLE IF NOT EXISTS scan_comments (
+    id SERIAL PRIMARY KEY,
+    scan_id VARCHAR(50) REFERENCES scans(id) ON DELETE CASCADE,
+    user_id VARCHAR(100) NOT NULL,
+    user_role VARCHAR(20) NOT NULL,
+    user_name VARCHAR(100) NOT NULL,
+    comment_text TEXT NOT NULL,
+    parent_comment_id INTEGER REFERENCES scan_comments(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_scans_patient_id ON scans(patient_id);
 CREATE INDEX IF NOT EXISTS idx_scans_upload_time ON scans(upload_time);
@@ -110,6 +123,8 @@ CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_dat
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_detections_scan_id ON detections(scan_id);
+CREATE INDEX IF NOT EXISTS idx_scan_comments_scan_id ON scan_comments(scan_id);
+CREATE INDEX IF NOT EXISTS idx_scan_comments_parent_id ON scan_comments(parent_comment_id);
 
 -- Create a function to auto-update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -128,6 +143,9 @@ CREATE TRIGGER update_doctors_updated_at BEFORE UPDATE ON doctors
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_appointments_updated_at BEFORE UPDATE ON appointments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_scan_comments_updated_at BEFORE UPDATE ON scan_comments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert some sample doctors

@@ -28,6 +28,8 @@ import './Platform.css'; // Import platform CSS
 import SimplifiedPatientPlatform from './SimplifiedPatientPlatform'; // Import the new component
 import ScanUpload from './components/ScanUpload';
 import ScanResults from './components/ScanResults';
+import ScanCommentThread from './components/ScanCommentThread';
+import ScanCommentForm from './components/ScanCommentForm';
 import {
   getCurrentPatientProfile,
   getAllScans,
@@ -45,7 +47,8 @@ import {
   sendMessage,
   getDashboardStats,
   formatDate,
-  savePatientProfile
+  savePatientProfile,
+  getScanCommentCount
 } from './utils/unifiedDataManager';
 
 const PatientDashboard = ({ username, onLogout }) => {
@@ -89,6 +92,18 @@ const PatientDashboard = ({ username, onLogout }) => {
   });
   const [messages, setMessages] = useState([]);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // Comment state
+  const [selectedScanForComments, setSelectedScanForComments] = useState(null);
+  const [replyToComment, setReplyToComment] = useState(null);
+  const [commentRefresh, setCommentRefresh] = useState(0);
+
+  // Current user object for comments
+  const currentUser = patientProfile ? {
+    id: patientProfile.id,
+    name: patientProfile.fullName || username,
+    role: 'patient'
+  } : null;
 
   // Load/refresh patient profile and data on mount
   useEffect(() => {
@@ -995,51 +1010,117 @@ const PatientDashboard = ({ username, onLogout }) => {
               </div>
 
               {(scanHistory || []).length > 0 ? (
-                <div className="uploads-table-container">
-                  <table className="uploads-table">
-                    <thead>
-                      <tr>
-                        <th>Scan Date</th>
-                        <th>Risk Level</th>
-                        <th>Findings</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(scanHistory || []).map(scan => (
-                        <tr key={scan.scanId}>
-                          <td>{formatDate(scan.uploadTime)}</td>
-                          <td>
-                            <span className={`status-badge risk-${scan.results?.riskLevel || 'none'}`}>
-                              {(scan.results?.riskLevel || 'none').toUpperCase()}
-                            </span>
-                          </td>
-                          <td>{scan.results?.detected ? 'Areas Detected' : 'None Detected'}</td>
-                          <td>
-                            <div className="table-actions">
-                              <button
-                                className="table-action-button view"
-                                onClick={() => handleViewScan(scan)}
-                                type="button"
-                                title="View Results"
-                              >
-                                <EyeIcon size={16} /> View
-                              </button>
-                              <button
-                                className="table-action-button delete"
-                                onClick={() => handleDeleteScan(scan.scanId)}
-                                type="button"
-                                title="Delete Scan"
-                              >
-                                <Trash2 size={16} /> Delete
-                              </button>
-                            </div>
-                          </td>
+                <>
+                  <div className="uploads-table-container">
+                    <table className="uploads-table">
+                      <thead>
+                        <tr>
+                          <th>Scan Date</th>
+                          <th>Risk Level</th>
+                          <th>Findings</th>
+                          <th>Comments</th>
+                          <th>Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {(scanHistory || []).map(scan => {
+                          const commentCount = getScanCommentCount(scan.scanId || scan.id);
+                          return (
+                            <tr key={scan.scanId || scan.id}>
+                              <td>{formatDate(scan.uploadTime)}</td>
+                              <td>
+                                <span className={`status-badge risk-${scan.results?.riskLevel || 'none'}`}>
+                                  {(scan.results?.riskLevel || 'none').toUpperCase()}
+                                </span>
+                              </td>
+                              <td>{scan.results?.detected ? 'Areas Detected' : 'None Detected'}</td>
+                              <td>
+                                <span className="comment-count-badge">
+                                  {commentCount > 0 ? `${commentCount} comment${commentCount > 1 ? 's' : ''}` : 'No comments'}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="table-actions">
+                                  <button
+                                    className="table-action-button view"
+                                    onClick={() => handleViewScan(scan)}
+                                    type="button"
+                                    title="View Results"
+                                  >
+                                    <EyeIcon size={16} /> View
+                                  </button>
+                                  <button
+                                    className="table-action-button comment"
+                                    onClick={() => setSelectedScanForComments(scan)}
+                                    type="button"
+                                    title="View Comments"
+                                  >
+                                    <MessageCircle size={16} /> Comments
+                                  </button>
+                                  <button
+                                    className="table-action-button delete"
+                                    onClick={() => handleDeleteScan(scan.scanId)}
+                                    type="button"
+                                    title="Delete Scan"
+                                  >
+                                    <Trash2 size={16} /> Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {selectedScanForComments && currentUser && (
+                    <div style={{
+                      marginTop: '2rem',
+                      background: 'white',
+                      borderRadius: '12px',
+                      padding: '1.5rem',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3>Comments for Scan from {formatDate(selectedScanForComments.uploadTime)}</h3>
+                        <button
+                          onClick={() => setSelectedScanForComments(null)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '0.5rem',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      <ScanCommentForm
+                        scanId={selectedScanForComments.scanId || selectedScanForComments.id}
+                        currentUser={currentUser}
+                        parentComment={replyToComment}
+                        onSuccess={() => {
+                          setCommentRefresh(prev => prev + 1);
+                          setReplyToComment(null);
+                        }}
+                        onCancel={() => setReplyToComment(null)}
+                      />
+
+                      <ScanCommentThread
+                        scanId={selectedScanForComments.scanId || selectedScanForComments.id}
+                        currentUser={currentUser}
+                        onReply={(comment) => setReplyToComment(comment)}
+                        onDelete={() => setCommentRefresh(prev => prev + 1)}
+                        refreshTrigger={commentRefresh}
+                      />
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="no-data-container">
                   <FileText className="no-data-icon" />

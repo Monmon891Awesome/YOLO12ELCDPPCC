@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Users, FileText, Layers, Settings, LogOut, Bell, Search, Home, Activity, Calendar, MessageCircle } from 'lucide-react';
 import './Dashboard.css';
+import ScanCommentThread from './components/ScanCommentThread';
+import ScanCommentForm from './components/ScanCommentForm';
 import {
   getAllPatients,
   getAllScans,
   getDashboardStats,
-  formatDate
+  formatDate,
+  getScanCommentCount
 } from './utils/unifiedDataManager';
 
 const DoctorDashboard = ({ username, onLogout }) => {
@@ -13,6 +16,16 @@ const DoctorDashboard = ({ username, onLogout }) => {
   const [patients, setPatients] = useState([]);
   const [scans, setScans] = useState([]);
   const [stats, setStats] = useState({});
+  const [selectedScan, setSelectedScan] = useState(null);
+  const [replyToComment, setReplyToComment] = useState(null);
+  const [commentRefresh, setCommentRefresh] = useState(0);
+
+  // Current user object for comments
+  const currentUser = {
+    id: 'doctor_' + username,
+    name: 'Dr. ' + username,
+    role: 'doctor'
+  };
 
   // Load data on mount
   useEffect(() => {
@@ -20,9 +33,24 @@ const DoctorDashboard = ({ username, onLogout }) => {
   }, []);
 
   const loadData = () => {
+    const allScans = getAllScans();
     setPatients(getAllPatients());
-    setScans(getAllScans());
+    setScans(allScans);
     setStats(getDashboardStats());
+
+    // Auto-select first scan if none selected
+    if (!selectedScan && allScans.length > 0) {
+      setSelectedScan(allScans[0]);
+    }
+  };
+
+  const handleCommentSuccess = () => {
+    setCommentRefresh(prev => prev + 1);
+    setReplyToComment(null);
+  };
+
+  const handleReply = (comment) => {
+    setReplyToComment(comment);
   };
 
   // Get recent scans with patient names
@@ -329,52 +357,128 @@ const DoctorDashboard = ({ username, onLogout }) => {
             {activeTab === 'scans' && (
               <>
                 <div className="admin-header">
-                  <h1>CT Scan Analysis</h1>
-                  <button className="admin-button">Upload New Scan</button>
-                </div>
-
-                <div className="doctor-scans-grid">
-                  <div className="scan-viewer-large">
-                    <img src="/assets/lungs.png" alt="CT Scan" className="scan-image-large" />
-                    <div className="scan-controls">
-                      <button className="scan-control-button">Previous</button>
-                      <button className="scan-control-button">Next</button>
-                    </div>
-                  </div>
-
-                  <div className="scan-analysis-panel">
-                    <h3>AI Analysis Results</h3>
-                    <div className="analysis-metrics">
-                      <div className="metric-item">
-                        <span className="metric-label">Analysis Status</span>
-                        <span className="metric-value">Areas Detected</span>
-                      </div>
-                      <div className="metric-item">
-                        <span className="metric-label">Attention Level</span>
-                        <span className="risk-badge-large risk-high">REQUIRES REVIEW</span>
-                      </div>
-                      <div className="metric-item">
-                        <span className="metric-label">Findings</span>
-                        <span className="metric-value">Abnormalities Present</span>
-                      </div>
-                    </div>
-
-                    <div className="analysis-recommendations">
-                      <h4>Suggested Considerations</h4>
-                      <ul className="recommendations-list">
-                        <li>Healthcare professional evaluation recommended</li>
-                        <li>Further diagnostic procedures may be beneficial</li>
-                        <li>Review patient medical history</li>
-                        <li>Additional imaging may provide more information</li>
-                      </ul>
-                    </div>
-
-                    <div className="analysis-actions">
-                      <button className="primary-button">Generate Report</button>
-                      <button className="secondary-button">Request Second Opinion</button>
-                    </div>
+                  <h1>CT Scan Analysis & Review</h1>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <select
+                      className="scan-selector"
+                      value={selectedScan?.id || ''}
+                      onChange={(e) => {
+                        const scan = scans.find(s => s.id === e.target.value);
+                        setSelectedScan(scan);
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        border: '1px solid #d1d5db',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      {scans.map(scan => {
+                        const patient = patients.find(p => p.id === scan.patientId);
+                        const commentCount = getScanCommentCount(scan.id);
+                        return (
+                          <option key={scan.id} value={scan.id}>
+                            {patient?.fullName || scan.patientId} - {formatDate(scan.uploadTime)}
+                            {commentCount > 0 && ` (${commentCount} comments)`}
+                          </option>
+                        );
+                      })}
+                    </select>
                   </div>
                 </div>
+
+                {selectedScan ? (
+                  <div className="doctor-scans-grid">
+                    <div className="scan-viewer-large">
+                      <img
+                        src={selectedScan.annotatedImageUrl || "/assets/lungs.png"}
+                        alt="CT Scan"
+                        className="scan-image-large"
+                      />
+                      <div className="scan-controls">
+                        <button
+                          className="scan-control-button"
+                          onClick={() => {
+                            const currentIndex = scans.findIndex(s => s.id === selectedScan.id);
+                            if (currentIndex > 0) {
+                              setSelectedScan(scans[currentIndex - 1]);
+                            }
+                          }}
+                          disabled={scans.findIndex(s => s.id === selectedScan.id) === 0}
+                        >
+                          Previous
+                        </button>
+                        <button
+                          className="scan-control-button"
+                          onClick={() => {
+                            const currentIndex = scans.findIndex(s => s.id === selectedScan.id);
+                            if (currentIndex < scans.length - 1) {
+                              setSelectedScan(scans[currentIndex + 1]);
+                            }
+                          }}
+                          disabled={scans.findIndex(s => s.id === selectedScan.id) === scans.length - 1}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="scan-analysis-panel">
+                      <h3>AI Analysis Results</h3>
+                      <div className="analysis-metrics">
+                        <div className="metric-item">
+                          <span className="metric-label">Analysis Status</span>
+                          <span className="metric-value">{selectedScan.status || 'Completed'}</span>
+                        </div>
+                        <div className="metric-item">
+                          <span className="metric-label">Attention Level</span>
+                          <span className={`risk-badge-large risk-${selectedScan.results?.riskLevel || 'medium'}`}>
+                            {selectedScan.results?.detected ? 'REQUIRES REVIEW' : 'REVIEWED'}
+                          </span>
+                        </div>
+                        <div className="metric-item">
+                          <span className="metric-label">Findings</span>
+                          <span className="metric-value">
+                            {selectedScan.results?.detected ? 'Abnormalities Present' : 'No Issues Detected'}
+                          </span>
+                        </div>
+                        <div className="metric-item">
+                          <span className="metric-label">Comments</span>
+                          <span className="metric-value">{getScanCommentCount(selectedScan.id)}</span>
+                        </div>
+                      </div>
+
+                      <div className="analysis-actions">
+                        <button className="primary-button">Generate Report</button>
+                        <button className="secondary-button">Request Second Opinion</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                    <p>No scans available for review</p>
+                  </div>
+                )}
+
+                {selectedScan && (
+                  <div style={{ marginTop: '2rem' }}>
+                    <ScanCommentForm
+                      scanId={selectedScan.id}
+                      currentUser={currentUser}
+                      parentComment={replyToComment}
+                      onSuccess={handleCommentSuccess}
+                      onCancel={() => setReplyToComment(null)}
+                    />
+
+                    <ScanCommentThread
+                      scanId={selectedScan.id}
+                      currentUser={currentUser}
+                      onReply={handleReply}
+                      onDelete={handleCommentSuccess}
+                      refreshTrigger={commentRefresh}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>
