@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Layers, Settings, HelpCircle, LogOut, Bell, Search, Home, UserPlus, Stethoscope, Download, Upload, Database, Activity, TrendingUp, CheckCircle, AlertCircle, Shield, MessageSquare, BarChart3, Clock, Target } from 'lucide-react';
+import { Users, FileText, Layers, Settings, HelpCircle, LogOut, Bell, Search, Home, UserPlus, Stethoscope, Download, Upload, Database, Activity, TrendingUp, CheckCircle, AlertCircle, Shield, MessageSquare, BarChart3, Clock, Target, X } from 'lucide-react';
 import './Dashboard.css';
 import {
   getAllDoctors,
@@ -12,12 +12,16 @@ import {
   downloadDataBackup,
   importData,
   initializeDatabase,
-  formatDate
+  formatDate,
+  getScanCommentCount
 } from './utils/unifiedDataManager';
+import ScanCommentForm from './components/ScanCommentForm';
+import ScanCommentThread from './components/ScanCommentThread';
 
 const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showDoctorModal, setShowDoctorModal] = useState(false);
+  const [selectedScan, setSelectedScan] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
   const [scans, setScans] = useState([]);
@@ -611,15 +615,18 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                               <th>Risk Level</th>
                               <th>Confidence</th>
                               <th>Detection</th>
+                              <th>Comments</th>
                               <th>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {scans.map(scan => {
+                              const scanId = scan.scanId || scan.id;
                               const patient = patients.find(p => p.id === scan.patientId);
+                              const commentCount = getScanCommentCount(scanId);
                               return (
-                                <tr key={scan.scanId}>
-                                  <td>{scan.scanId}</td>
+                                <tr key={scanId}>
+                                  <td>{scanId}</td>
                                   <td>{scan.patientId}</td>
                                   <td>{formatDate(scan.uploadTime)}</td>
                                   <td>
@@ -641,7 +648,16 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                     )}
                                   </td>
                                   <td>
-                                    <button className="table-action-button">View Details</button>
+                                    <MessageSquare size={16} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
+                                    <span>{commentCount}</span>
+                                  </td>
+                                  <td>
+                                    <button
+                                      className="table-action-button"
+                                      onClick={() => setSelectedScan(scan)}
+                                    >
+                                      View Details
+                                    </button>
                                   </td>
                                 </tr>
                               );
@@ -1208,6 +1224,169 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Scan Detail Modal */}
+      {selectedScan && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '2rem'
+          }}
+          onClick={() => setSelectedScan(null)}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              maxWidth: '1200px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+              border: '2px solid #7B6BBE'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '1rem' }}>
+              <div>
+                <h2 style={{ margin: 0, color: '#1f2937', fontSize: '1.5rem' }}>
+                  CT Scan Details - {selectedScan.scanId || selectedScan.id}
+                </h2>
+                <p style={{ margin: '0.5rem 0 0 0', color: '#6b7280', fontSize: '0.9rem' }}>
+                  Patient: {selectedScan.patientId} | Uploaded: {formatDate(selectedScan.uploadTime)}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedScan(null)}
+                style={{
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Split view - Image and Details */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+              {/* Left side - Scan Image */}
+              <div>
+                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#374151' }}>Scan Image</h3>
+                <div style={{ background: '#000', borderRadius: '8px', overflow: 'hidden' }}>
+                  {selectedScan.annotatedImageUrl || selectedScan.imageUrl ? (
+                    <img
+                      src={selectedScan.annotatedImageUrl || selectedScan.imageUrl}
+                      alt="CT Scan"
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        maxHeight: '500px',
+                        objectFit: 'contain',
+                        display: 'block'
+                      }}
+                      onError={(e) => {
+                        console.error('Image failed to load:', e);
+                        e.target.src = '/assets/lungs.png';
+                      }}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+                      <Layers size={64} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                      <p>Scan image not available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right side - Analysis Results */}
+              <div>
+                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#374151' }}>Analysis Results</h3>
+                <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '1.5rem' }}>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#6b7280', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase' }}>Risk Level</h4>
+                    <span className={`status-badge ${
+                      selectedScan.results?.riskLevel === 'none' ? 'success' :
+                      selectedScan.results?.riskLevel === 'low' ? 'info' :
+                      selectedScan.results?.riskLevel === 'medium' ? 'warning' :
+                      selectedScan.results?.riskLevel === 'high' ? 'danger' : ''
+                    }`} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
+                      {(selectedScan.results?.riskLevel || 'unknown').toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#6b7280', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase' }}>Confidence</h4>
+                    <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                      {((selectedScan.results?.confidence || 0) * 100).toFixed(1)}%
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#6b7280', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase' }}>Detection Status</h4>
+                    <p style={{ margin: 0, fontSize: '1rem', color: '#374151' }}>
+                      {selectedScan.results?.detected ? '⚠️ Areas of concern detected' : '✅ No areas of concern detected'}
+                    </p>
+                  </div>
+
+                  {selectedScan.results?.classification && (
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#6b7280', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase' }}>Classification</h4>
+                      <p style={{ margin: 0, fontSize: '1rem', color: '#374151' }}>
+                        {selectedScan.results.classification}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Comments Section */}
+            <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '2rem' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#374151' }}>Professional Feedback & Comments</h3>
+
+              <ScanCommentForm
+                scanId={selectedScan.scanId || selectedScan.id}
+                currentUser={{
+                  id: 'ADMIN-001',
+                  role: 'admin',
+                  name: username || 'Admin'
+                }}
+                onSuccess={() => {
+                  // Refresh comments by re-rendering
+                  setSelectedScan({...selectedScan});
+                }}
+              />
+
+              <ScanCommentThread
+                scanId={selectedScan.scanId || selectedScan.id}
+                currentUser={{
+                  id: 'ADMIN-001',
+                  role: 'admin',
+                  name: username || 'Admin'
+                }}
+                refreshTrigger={selectedScan}
+              />
+            </div>
           </div>
         </div>
       )}
