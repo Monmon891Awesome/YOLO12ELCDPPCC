@@ -34,7 +34,14 @@ const DoctorDashboard = ({ username, onLogout }) => {
 
   const loadData = () => {
     const allScans = getAllScans();
-    setPatients(getAllPatients());
+    const allPatients = getAllPatients();
+
+    console.log('🔍 DoctorDashboard - Loading data:');
+    console.log('📊 Total scans:', allScans.length);
+    console.log('👥 Total patients:', allPatients.length);
+    console.log('🖼️ First scan:', allScans[0]);
+
+    setPatients(allPatients);
     setScans(allScans);
     setStats(getDashboardStats());
 
@@ -396,65 +403,155 @@ const DoctorDashboard = ({ username, onLogout }) => {
 
                   {/* Scans Table */}
                   <div className="dashboard-card">
-                    <h3>All Patient CT Scans</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3 style={{ margin: 0 }}>All Patient CT Scans ({scans.length})</h3>
+                      <button
+                        onClick={() => loadData()}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: '500'
+                        }}
+                      >
+                        🔄 Refresh
+                      </button>
+                    </div>
                     {scans.length > 0 ? (
-                      <div className="admin-table-container">
-                        <table className="admin-table">
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{
+                          width: '100%',
+                          borderCollapse: 'separate',
+                          borderSpacing: '0',
+                          fontSize: '0.9rem'
+                        }}>
                           <thead>
-                            <tr>
-                              <th>Patient</th>
-                              <th>Upload Date</th>
-                              <th>Risk Level</th>
-                              <th>Detection</th>
-                              <th>Comments</th>
-                              <th>Actions</th>
+                            <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Patient</th>
+                              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Upload Date</th>
+                              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Risk Level</th>
+                              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Detection</th>
+                              <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Comments</th>
+                              <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {scans.map(scan => {
+                            {scans.map((scan, index) => {
                               const scanId = scan.scanId || scan.id;
                               const patient = patients.find(p => p.id === scan.patientId);
                               const commentCount = getScanCommentCount(scanId);
                               return (
-                                <tr key={scanId}>
-                                  <td><strong>{patient?.fullName || patient?.firstName || scan.patientId}</strong></td>
-                                  <td>{formatDate(scan.uploadTime)}</td>
-                                  <td>
-                                    <span className={`status-badge ${
-                                      scan.results?.riskLevel === 'none' ? 'success' :
-                                      scan.results?.riskLevel === 'low' ? 'info' :
-                                      scan.results?.riskLevel === 'medium' ? 'warning' :
-                                      scan.results?.riskLevel === 'high' ? 'danger' : ''
-                                    }`}>
-                                      {(scan.results?.riskLevel || 'unknown').toUpperCase()}
+                                <tr
+                                  key={scanId || index}
+                                  style={{
+                                    borderBottom: '1px solid #e5e7eb',
+                                    transition: 'background 0.2s',
+                                    cursor: 'pointer'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                >
+                                  <td style={{ padding: '1rem' }}>
+                                    <strong style={{ color: '#111827' }}>
+                                      {patient?.fullName || patient?.firstName || scan.patientId || 'Unknown Patient'}
+                                    </strong>
+                                  </td>
+                                  <td style={{ padding: '1rem', color: '#6b7280' }}>
+                                    {formatDate(scan.uploadTime) || 'Unknown date'}
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <span style={{
+                                      padding: '0.375rem 0.75rem',
+                                      borderRadius: '6px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: '600',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      background: scan.results?.riskLevel === 'high' ? '#fee2e2' :
+                                                 scan.results?.riskLevel === 'medium' ? '#fef3c7' :
+                                                 scan.results?.riskLevel === 'low' ? '#dbeafe' :
+                                                 scan.results?.riskLevel === 'none' ? '#d1fae5' : '#f3f4f6',
+                                      color: scan.results?.riskLevel === 'high' ? '#dc2626' :
+                                            scan.results?.riskLevel === 'medium' ? '#ea580c' :
+                                            scan.results?.riskLevel === 'low' ? '#2563eb' :
+                                            scan.results?.riskLevel === 'none' ? '#16a34a' : '#6b7280'
+                                    }}>
+                                      {scan.results?.riskLevel || 'Unknown'}
                                     </span>
                                   </td>
-                                  <td>
+                                  <td style={{ padding: '1rem' }}>
                                     {scan.results?.detected ? (
-                                      <span className="badge-warning">Areas Detected</span>
+                                      <span style={{
+                                        padding: '0.375rem 0.75rem',
+                                        background: '#fef3c7',
+                                        color: '#92400e',
+                                        borderRadius: '6px',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500'
+                                      }}>
+                                        ⚠️ Areas Detected
+                                      </span>
                                     ) : (
-                                      <span className="badge-success">None Detected</span>
+                                      <span style={{
+                                        padding: '0.375rem 0.75rem',
+                                        background: '#d1fae5',
+                                        color: '#065f46',
+                                        borderRadius: '6px',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500'
+                                      }}>
+                                        ✓ Clear
+                                      </span>
                                     )}
                                   </td>
-                                  <td>
+                                  <td style={{ padding: '1rem', textAlign: 'center' }}>
                                     <span style={{
-                                      padding: '0.25rem 0.5rem',
+                                      padding: '0.375rem 0.75rem',
                                       background: commentCount > 0 ? '#dbeafe' : '#f3f4f6',
                                       color: commentCount > 0 ? '#1e40af' : '#6b7280',
-                                      borderRadius: '4px',
+                                      borderRadius: '6px',
                                       fontSize: '0.875rem',
-                                      fontWeight: '500'
+                                      fontWeight: '500',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem'
                                     }}>
-                                      {commentCount} comment{commentCount !== 1 ? 's' : ''}
+                                      <MessageCircle size={14} />
+                                      {commentCount}
                                     </span>
                                   </td>
-                                  <td>
+                                  <td style={{ padding: '1rem', textAlign: 'center' }}>
                                     <button
-                                      className="table-action-button"
-                                      onClick={() => setSelectedScan(scan)}
-                                      style={{ background: 'linear-gradient(135deg, #7B6BBE 0%, #9B8BCE 100%)', color: 'white', border: 'none' }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        console.log('🔍 Opening scan:', scan);
+                                        setSelectedScan(scan);
+                                      }}
+                                      style={{
+                                        padding: '0.625rem 1.25rem',
+                                        background: 'linear-gradient(135deg, #7B6BBE 0%, #9B8BCE 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600',
+                                        transition: 'all 0.2s',
+                                        boxShadow: '0 2px 4px rgba(123, 107, 190, 0.2)'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(123, 107, 190, 0.3)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(123, 107, 190, 0.2)';
+                                      }}
                                     >
-                                      Review & Comment
+                                      📋 Review Scan
                                     </button>
                                   </td>
                                 </tr>
@@ -464,75 +561,210 @@ const DoctorDashboard = ({ username, onLogout }) => {
                         </table>
                       </div>
                     ) : (
-                      <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-                        <Layers size={48} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
-                        <p style={{ fontSize: '1.1rem', fontWeight: '500' }}>No CT scans uploaded yet</p>
-                        <p style={{ fontSize: '0.9rem', color: '#9ca3af' }}>Scans uploaded by patients will appear here for review</p>
+                      <div style={{
+                        padding: '4rem 2rem',
+                        textAlign: 'center',
+                        background: '#f9fafb',
+                        borderRadius: '8px',
+                        border: '2px dashed #d1d5db'
+                      }}>
+                        <Layers size={64} style={{ color: '#9ca3af', margin: '0 auto 1.5rem' }} />
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#374151', fontSize: '1.25rem' }}>
+                          No CT Scans Available
+                        </h4>
+                        <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9375rem' }}>
+                          Patient uploaded scans will appear here for your professional review
+                        </p>
                       </div>
                     )}
                   </div>
 
                   {/* Selected Scan Detail View */}
                   {selectedScan && (
-                    <div className="dashboard-card" style={{ padding: '2rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ margin: 0 }}>Scan Review: {patients.find(p => p.id === selectedScan.patientId)?.fullName || selectedScan.patientId}</h3>
+                    <div style={{
+                      background: 'white',
+                      borderRadius: '12px',
+                      padding: '2rem',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                      border: '2px solid #7B6BBE'
+                    }}>
+                      {/* Header */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '2rem',
+                        paddingBottom: '1rem',
+                        borderBottom: '2px solid #e5e7eb'
+                      }}>
+                        <div>
+                          <h2 style={{ margin: '0 0 0.5rem 0', color: '#111827', fontSize: '1.5rem' }}>
+                            CT Scan Review
+                          </h2>
+                          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9375rem' }}>
+                            Patient: <strong>{patients.find(p => p.id === selectedScan.patientId)?.fullName || selectedScan.patientId}</strong>
+                            {' · '}
+                            Uploaded: {formatDate(selectedScan.uploadTime)}
+                          </p>
+                        </div>
                         <button
-                          onClick={() => setSelectedScan(null)}
-                          style={{
-                            background: 'none',
-                            border: '1px solid #d1d5db',
-                            padding: '0.5rem 1rem',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            color: '#6b7280'
+                          onClick={() => {
+                            console.log('Closing scan view');
+                            setSelectedScan(null);
                           }}
+                          style={{
+                            padding: '0.625rem 1.25rem',
+                            background: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            color: '#374151',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#e5e7eb'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = '#f3f4f6'}
                         >
-                          Close
+                          ✕ Close
                         </button>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                      {/* Main Content */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                        {/* CT Scan Image */}
                         <div>
-                          <img
-                            src={selectedScan.annotatedImageUrl || selectedScan.imageUrl || "/assets/lungs.png"}
-                            alt="CT Scan"
-                            style={{
-                              width: '100%',
-                              borderRadius: '8px',
-                              border: '2px solid #e5e7eb',
-                              maxHeight: '400px',
-                              objectFit: 'contain'
-                            }}
-                          />
+                          <h4 style={{ marginTop: 0, marginBottom: '1rem', color: '#374151' }}>CT Scan Image</h4>
+                          <div style={{
+                            background: '#000',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            border: '2px solid #e5e7eb',
+                            position: 'relative',
+                            minHeight: '400px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {selectedScan.annotatedImageUrl || selectedScan.imageUrl ? (
+                              <img
+                                src={selectedScan.annotatedImageUrl || selectedScan.imageUrl}
+                                alt="CT Scan"
+                                style={{
+                                  width: '100%',
+                                  height: 'auto',
+                                  maxHeight: '500px',
+                                  objectFit: 'contain',
+                                  display: 'block'
+                                }}
+                                onError={(e) => {
+                                  console.error('Image failed to load:', e);
+                                  e.target.src = '/assets/lungs.png';
+                                }}
+                              />
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+                                <Layers size={64} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                                <p style={{ margin: 0 }}>Scan image not available</p>
+                                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.875rem' }}>Using placeholder image</p>
+                              </div>
+                            )}
+                          </div>
+                          {selectedScan.annotatedImageUrl && (
+                            <p style={{
+                              margin: '0.75rem 0 0 0',
+                              fontSize: '0.8125rem',
+                              color: '#6b7280',
+                              textAlign: 'center'
+                            }}>
+                              ℹ️ Image shows AI-detected areas highlighted in red
+                            </p>
+                          )}
                         </div>
+
+                        {/* Analysis Results */}
                         <div>
-                          <h4 style={{ marginTop: 0 }}>AI Analysis Results</h4>
+                          <h4 style={{ marginTop: 0, marginBottom: '1rem', color: '#374151' }}>AI Analysis Results</h4>
                           <div style={{ display: 'grid', gap: '1rem' }}>
-                            <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Risk Level</span>
-                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 'bold', color: '#374151' }}>
+                            <div style={{
+                              padding: '1.25rem',
+                              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                              borderRadius: '8px',
+                              border: '1px solid #bae6fd'
+                            }}>
+                              <span style={{ color: '#0369a1', fontSize: '0.8125rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Risk Level
+                              </span>
+                              <p style={{ margin: '0.75rem 0 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#0c4a6e' }}>
                                 {(selectedScan.results?.riskLevel || 'Unknown').toUpperCase()}
                               </p>
                             </div>
-                            <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Detection Status</span>
-                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 'bold', color: '#374151' }}>
-                                {selectedScan.results?.detected ? 'Areas Detected' : 'No Issues Detected'}
+
+                            <div style={{
+                              padding: '1.25rem',
+                              background: selectedScan.results?.detected ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                              borderRadius: '8px',
+                              border: selectedScan.results?.detected ? '1px solid #fbbf24' : '1px solid #6ee7b7'
+                            }}>
+                              <span style={{
+                                color: selectedScan.results?.detected ? '#92400e' : '#065f46',
+                                fontSize: '0.8125rem',
+                                fontWeight: '600',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                Detection Status
+                              </span>
+                              <p style={{
+                                margin: '0.75rem 0 0 0',
+                                fontSize: '1.125rem',
+                                fontWeight: 'bold',
+                                color: selectedScan.results?.detected ? '#78350f' : '#064e3b'
+                              }}>
+                                {selectedScan.results?.detected ? '⚠️ Areas Detected' : '✓ No Issues Detected'}
                               </p>
                             </div>
-                            <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Confidence</span>
-                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 'bold', color: '#374151' }}>
+
+                            <div style={{
+                              padding: '1.25rem',
+                              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                              borderRadius: '8px',
+                              border: '1px solid #d1d5db'
+                            }}>
+                              <span style={{ color: '#374151', fontSize: '0.8125rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                AI Confidence
+                              </span>
+                              <p style={{ margin: '0.75rem 0 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>
                                 {((selectedScan.results?.confidence || 0) * 100).toFixed(1)}%
+                              </p>
+                            </div>
+
+                            <div style={{
+                              padding: '1.25rem',
+                              background: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)',
+                              borderRadius: '8px',
+                              border: '1px solid #c4b5fd'
+                            }}>
+                              <span style={{ color: '#6d28d9', fontSize: '0.8125rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Scan ID
+                              </span>
+                              <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.9375rem', fontWeight: '600', color: '#5b21b6', fontFamily: 'monospace' }}>
+                                {selectedScan.scanId || selectedScan.id || 'N/A'}
                               </p>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '2rem' }}>
-                        <h4>Professional Feedback & Comments</h4>
+                      {/* Comments Section */}
+                      <div style={{
+                        borderTop: '2px solid #e5e7eb',
+                        paddingTop: '2rem',
+                        marginTop: '1rem'
+                      }}>
+                        <h3 style={{ margin: '0 0 1.5rem 0', color: '#111827', fontSize: '1.25rem' }}>
+                          💬 Professional Feedback & Comments
+                        </h3>
                         <ScanCommentForm
                           scanId={selectedScan.scanId || selectedScan.id}
                           currentUser={currentUser}
