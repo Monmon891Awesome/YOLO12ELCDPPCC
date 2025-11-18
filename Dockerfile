@@ -26,20 +26,23 @@ RUN apt-get update && \
 # Set working directory
 WORKDIR /app
 
-# Copy and install minimal dependencies (no YOLO for now)
-COPY requirements-minimal.txt .
+# Copy and install ONNX-optimized dependencies (includes full AI functionality)
+COPY requirements-onnx.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-minimal.txt && \
+    pip install --no-cache-dir -r requirements-onnx.txt && \
     rm -rf /root/.cache/pip /tmp/*
 
-# Copy application code (minimal files only)
+# Copy application code
 COPY app/ ./app/
+
+# Copy YOLO ONNX model (11.5 MB - lightweight inference)
+COPY best.onnx ./best.onnx
 
 # Create upload directories
 RUN mkdir -p /tmp/uploads/originals /tmp/uploads/annotated /tmp/uploads/thumbnails && \
     chmod -R 755 /tmp/uploads
 
-# Note: YOLO model will be added later via volume or after Railway upgrade
+# ONNX model provides full CT scan AI analysis with 85% smaller deployment size
 
 # Expose port
 EXPOSE 8000

@@ -39,9 +39,9 @@ class Settings:
     MAX_UPLOAD_SIZE_BYTES: int = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     # ============================================================
-    # YOLO MODEL CONFIGURATION
+    # YOLO MODEL CONFIGURATION (ONNX optimized)
     # ============================================================
-    MODEL_PATH: Path = Path(os.getenv("MODEL_PATH", "best.pt"))
+    MODEL_PATH: Path = Path(os.getenv("MODEL_PATH", "best.onnx"))
     YOLO_CONFIDENCE_THRESHOLD: float = float(os.getenv("YOLO_CONFIDENCE_THRESHOLD", "0.25"))
 
     # ============================================================
