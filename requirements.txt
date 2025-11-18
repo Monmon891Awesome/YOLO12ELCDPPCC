@@ -1,10 +1,14 @@
-# Backend Requirements for YOLOv12 Lung Cancer Detection API
+# Backend Requirements for PneumAI Unified API
 # Install with: pip install -r requirements.txt
 
 # Web Framework
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
+pydantic>=2.0.0
+
+# Authentication & Security
+passlib[bcrypt]>=1.7.4
 
 # YOLO Model
 ultralytics>=8.0.227
@@ -20,5 +24,8 @@ pydicom>=2.4.0
 # Database
 psycopg2-binary>=2.9.9
 
-# Optional but recommended
+# Configuration & Environment
 python-dotenv>=1.0.0
+
+# Async File Operations
+aiofiles>=23.2.1
