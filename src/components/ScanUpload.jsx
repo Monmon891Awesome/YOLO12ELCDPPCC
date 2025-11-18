@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, FileText, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { uploadScanWithProgress } from '../services/yoloApi';
+import { getCurrentPatientProfile } from '../utils/unifiedDataManager';
 import './ScanUpload.css';
 
 const ScanUpload = ({ onScanComplete, onError }) => {
@@ -92,9 +93,17 @@ const ScanUpload = ({ onScanComplete, onError }) => {
     setErrorMessage('');
 
     try {
-      const result = await uploadScanWithProgress(selectedFile, (progress) => {
-        setUploadProgress(progress);
-      });
+      // Get current patient profile
+      const patientProfile = getCurrentPatientProfile();
+      const patientId = patientProfile?.id || null;
+
+      const result = await uploadScanWithProgress(
+        selectedFile,
+        (progress) => {
+          setUploadProgress(progress);
+        },
+        patientId
+      );
 
       setScanResult(result);
       setUploadStatus('success');

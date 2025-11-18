@@ -24,15 +24,19 @@ const ensureAbsoluteUrl = (url) => {
  * Upload CT scan image for analysis
  * @param {File} file - The CT scan image file (DICOM, NIFTI, JPEG, or PNG)
  * @param {Function} onProgress - Callback for upload progress (0-100)
+ * @param {string} patientId - Optional patient ID
  * @returns {Promise<Object>} - Scan results with detection data
  */
-export const uploadScanForAnalysis = async (file, onProgress) => {
+export const uploadScanForAnalysis = async (file, onProgress, patientId = null) => {
   try {
     const formData = new FormData();
     formData.append('scan', file);
+    if (patientId) {
+      formData.append('patientId', patientId);
+    }
     formData.append('timestamp', new Date().toISOString());
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/scan/analyze`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/scans/analyze`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -68,12 +72,16 @@ export const uploadScanForAnalysis = async (file, onProgress) => {
  * Upload CT scan with XMLHttpRequest for progress tracking
  * @param {File} file - The CT scan image file
  * @param {Function} onProgress - Callback for upload progress (0-100)
+ * @param {string} patientId - Optional patient ID
  * @returns {Promise<Object>} - Scan results
  */
-export const uploadScanWithProgress = (file, onProgress) => {
+export const uploadScanWithProgress = (file, onProgress, patientId = null) => {
   return new Promise((resolve, reject) => {
     const formData = new FormData();
     formData.append('scan', file);
+    if (patientId) {
+      formData.append('patientId', patientId);
+    }
     formData.append('timestamp', new Date().toISOString());
 
     const xhr = new XMLHttpRequest();
@@ -128,7 +136,7 @@ export const uploadScanWithProgress = (file, onProgress) => {
     });
 
     // Send request
-    xhr.open('POST', `${API_BASE_URL}/api/v1/scan/analyze`);
+    xhr.open('POST', `${API_BASE_URL}/api/v1/scans/analyze`);
     xhr.send(formData);
   });
 };
@@ -140,7 +148,7 @@ export const uploadScanWithProgress = (file, onProgress) => {
  */
 export const getScanResult = async (scanId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/scan/${scanId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/scans/${scanId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -165,7 +173,7 @@ export const getScanResult = async (scanId) => {
  */
 export const getPatientScans = async (patientId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/patient/${patientId}/scans`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/scans/patient/${patientId}/scans`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -200,7 +208,7 @@ export const uploadBatchScans = async (files, onProgress) => {
     formData.append('timestamp', new Date().toISOString());
     formData.append('batch', 'true');
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/scan/batch-analyze`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/scans/batch-analyze`, {
       method: 'POST',
       body: formData,
     });
