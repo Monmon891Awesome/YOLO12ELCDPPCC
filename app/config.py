@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env.local (development) or .env (production)
+# Priority: .env.local > .env
+load_dotenv(dotenv_path=".env.local", override=False)
+load_dotenv(dotenv_path=".env", override=False)
 
 
 class Settings:
@@ -20,7 +22,7 @@ class Settings:
     # ============================================================
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://monskiemonmon427:@localhost:5432/pneumai_db"
+        "postgresql://pneumai_admin:pneumai_dev_password_2025@localhost:5432/pneumai_db"
     )
     DB_POOL_MIN: int = int(os.getenv("DB_POOL_MIN", "5"))
     DB_POOL_MAX: int = int(os.getenv("DB_POOL_MAX", "20"))
