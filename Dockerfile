@@ -26,19 +26,20 @@ RUN apt-get update && \
 # Set working directory
 WORKDIR /app
 
-# Copy and install Python dependencies in one layer
-COPY requirements.txt .
+# Copy and install minimal dependencies (no YOLO for now)
+COPY requirements-minimal.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    rm -rf /root/.cache/pip
+    pip install --no-cache-dir -r requirements-minimal.txt && \
+    rm -rf /root/.cache/pip /tmp/*
 
 # Copy application code (minimal files only)
 COPY app/ ./app/
 
-# Download YOLO model and create directories
-RUN curl -L -o ./best.pt https://raw.githubusercontent.com/Monmon891Awesome/YOLO12ELCDPPCC/pneumai-clean-backup/best.pt && \
-    mkdir -p /tmp/uploads/originals /tmp/uploads/annotated /tmp/uploads/thumbnails && \
+# Create upload directories
+RUN mkdir -p /tmp/uploads/originals /tmp/uploads/annotated /tmp/uploads/thumbnails && \
     chmod -R 755 /tmp/uploads
+
+# Note: YOLO model will be added later via volume or after Railway upgrade
 
 # Expose port
 EXPOSE 8000
