@@ -9,6 +9,7 @@ pydantic>=2.0.0
 
 # Authentication & Security
 passlib[bcrypt]>=1.7.4
+email-validator>=2.1.0
 
 # YOLO Model
 ultralytics>=8.0.227
