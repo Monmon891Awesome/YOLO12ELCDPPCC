@@ -3,15 +3,12 @@ Security utilities for PneumAI
 Password hashing, validation, and input sanitization
 """
 
-from passlib.context import CryptContext
+import bcrypt
 import re
 from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
-
-# Password hashing context using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # ============================================================
@@ -27,8 +24,21 @@ def hash_password(password: str) -> str:
 
     Returns:
         Hashed password string
+
+    Note:
+        bcrypt has a 72-byte limit, so passwords are truncated if necessary
     """
-    return pwd_context.hash(password)
+    # bcrypt has a 72-byte limit, truncate if necessary
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+
+    # Generate salt and hash password
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+
+    # Return as string
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -43,7 +53,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         True if password matches, False otherwise
     """
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        # Convert password to bytes
+        password_bytes = plain_password.encode('utf-8')
+        if len(password_bytes) > 72:
+            password_bytes = password_bytes[:72]
+
+        # Convert hash to bytes
+        hashed_bytes = hashed_password.encode('utf-8')
+
+        # Verify password
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
     except Exception as e:
         logger.error(f"Password verification error: {e}")
         return False

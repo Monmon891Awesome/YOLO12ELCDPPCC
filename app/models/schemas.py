@@ -215,7 +215,6 @@ class ScanListItem(BaseModel):
 
 class CommentCreate(BaseModel):
     """Schema for creating a scan comment"""
-    scan_id: str
     user_id: str
     user_role: UserRole
     user_name: str

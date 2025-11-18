@@ -421,6 +421,23 @@ def delete_scan_comment(comment_id: int) -> bool:
 # APPOINTMENT DATABASE FUNCTIONS
 # ============================================================
 
+def _map_appointment_fields(row: Dict) -> Dict:
+    """Map database appointment fields to API response format"""
+    return {
+        'id': row['id'],
+        'patientId': row['patient_id'],
+        'doctorId': row['doctor_id'],
+        'doctorName': row['doctor_name'],
+        'date': row['appointment_date'],
+        'time': row['appointment_time'],
+        'type': row['type'],
+        'status': row['status'],
+        'notes': row['notes'],
+        'created_at': row['created_at'],
+        'updated_at': row['updated_at']
+    }
+
+
 def create_appointment(appointment_data: Dict) -> Dict:
     """Create a new appointment"""
     query = """
@@ -435,7 +452,8 @@ def create_appointment(appointment_data: Dict) -> Dict:
     Database.execute(query, appointment_data, fetch="none")
 
     get_query = "SELECT * FROM appointments WHERE id = %s"
-    return Database.execute(get_query, (appointment_data['id'],), fetch="one")
+    row = Database.execute(get_query, (appointment_data['id'],), fetch="one")
+    return _map_appointment_fields(row)
 
 
 def get_patient_appointments(patient_id: str) -> List[Dict]:
@@ -445,7 +463,8 @@ def get_patient_appointments(patient_id: str) -> List[Dict]:
         WHERE patient_id = %s
         ORDER BY appointment_date DESC, appointment_time DESC
     """
-    return Database.execute(query, (patient_id,), fetch="all")
+    rows = Database.execute(query, (patient_id,), fetch="all")
+    return [_map_appointment_fields(row) for row in rows]
 
 
 def get_doctor_appointments(doctor_id: str) -> List[Dict]:
@@ -455,7 +474,8 @@ def get_doctor_appointments(doctor_id: str) -> List[Dict]:
         WHERE doctor_id = %s
         ORDER BY appointment_date DESC, appointment_time DESC
     """
-    return Database.execute(query, (doctor_id,), fetch="all")
+    rows = Database.execute(query, (doctor_id,), fetch="all")
+    return [_map_appointment_fields(row) for row in rows]
 
 
 def update_appointment(appointment_id: str, updates: Dict) -> Optional[Dict]:
@@ -479,13 +499,15 @@ def update_appointment(appointment_id: str, updates: Dict) -> Optional[Dict]:
         WHERE id = %(id)s
         RETURNING *
     """
-    return Database.execute(query, params, fetch="one")
+    row = Database.execute(query, params, fetch="one")
+    return _map_appointment_fields(row) if row else None
 
 
 def get_appointment(appointment_id: str) -> Optional[Dict]:
     """Get appointment by ID"""
     query = "SELECT * FROM appointments WHERE id = %s"
-    return Database.execute(query, (appointment_id,), fetch="one")
+    row = Database.execute(query, (appointment_id,), fetch="one")
+    return _map_appointment_fields(row) if row else None
 
 
 def delete_appointment(appointment_id: str) -> bool:
