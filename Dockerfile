@@ -35,7 +35,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy application code
 COPY app/ ./app/
-COPY best.pt ./best.pt
+
+# Copy model file with fallback to download from GitHub if not found
+COPY best.pt ./best.pt 2>/dev/null || \
+    curl -L -o ./best.pt https://raw.githubusercontent.com/Monmon891Awesome/YOLO12ELCDPPCC/pneumai-clean-backup/best.pt
 
 # Create uploads directory with proper permissions
 RUN mkdir -p /app/uploads/originals /app/uploads/annotated /app/uploads/thumbnails && \
