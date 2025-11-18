@@ -19,6 +19,7 @@ import logging
 
 from app.config import settings
 from app.database import Database
+from app.services.yolo_service import yolo_service
 
 # Configure logging
 logging.basicConfig(
@@ -82,6 +83,12 @@ async def startup_event():
         logger.error("❌ Database initialization failed")
         raise Exception("Database connection failed")
 
+    # Load YOLO model
+    if not yolo_service.load_model():
+        logger.warning("⚠️  YOLO model failed to load - scan functionality will be limited")
+    else:
+        logger.info("✅ YOLO model loaded successfully")
+
     logger.info("✅ PneumAI Backend started successfully")
 
 
@@ -100,38 +107,59 @@ async def shutdown_event():
 # ROUTER REGISTRATION
 # ============================================================
 
-# Import routers (will be created in next phase)
-# from app.routers import health, auth, patients, doctors, scans, appointments, messages
+# Import routers
+from app.routers import health, auth, patients, doctors, scans, appointments, messages
 
-# Register health check router (basic implementation for now)
-@app.get("/health")
-async def health_check():
-    """Basic health check endpoint"""
-    return {
-        "status": "healthy",
-        "environment": settings.ENVIRONMENT,
-        "version": "1.0.0"
-    }
-
+# ============================================================
+# ROOT ENDPOINT
+# ============================================================
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Root endpoint - API information"""
     return {
         "message": "PneumAI Unified Backend API",
         "version": "1.0.0",
-        "docs": "/docs" if settings.DEBUG else "disabled in production"
+        "environment": settings.ENVIRONMENT,
+        "docs": "/docs" if settings.DEBUG else "Documentation disabled in production",
+        "endpoints": {
+            "health": "/health",
+            "auth": "/api/v1/auth",
+            "patients": "/api/v1/patients",
+            "doctors": "/api/v1/doctors",
+            "scans": "/api/v1/scans",
+            "appointments": "/api/v1/appointments",
+            "messages": "/api/v1/messages"
+        }
     }
 
 
-# Router registration (to be added in Phase 2)
-# app.include_router(health.router, tags=["Health"])
-# app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
-# app.include_router(patients.router, prefix="/api/v1/patients", tags=["Patients"])
-# app.include_router(doctors.router, prefix="/api/v1/doctors", tags=["Doctors"])
-# app.include_router(scans.router, prefix="/api/v1/scans", tags=["Scans"])
-# app.include_router(appointments.router, prefix="/api/v1/appointments", tags=["Appointments"])
-# app.include_router(messages.router, prefix="/api/v1/messages", tags=["Messages"])
+# ============================================================
+# REGISTER ROUTERS
+# ============================================================
+
+# Health checks (no prefix - at root level)
+app.include_router(health.router, tags=["Health"])
+
+# Authentication
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+
+# Patients
+app.include_router(patients.router, prefix="/api/v1/patients", tags=["Patients"])
+
+# Doctors
+app.include_router(doctors.router, prefix="/api/v1/doctors", tags=["Doctors"])
+
+# Scans (CT scan upload and analysis)
+app.include_router(scans.router, prefix="/api/v1/scans", tags=["Scans"])
+
+# Appointments
+app.include_router(appointments.router, prefix="/api/v1/appointments", tags=["Appointments"])
+
+# Messages
+app.include_router(messages.router, prefix="/api/v1/messages", tags=["Messages"])
+
+logger.info("✅ All routers registered successfully")
 
 
 # ============================================================
