@@ -36,12 +36,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY app/ ./app/
 
-# Copy model file or download from GitHub if not found
-COPY best.pt ./best.pt || true
-RUN if [ ! -f ./best.pt ]; then \
-        echo "Model not found, downloading from GitHub..."; \
-        curl -L -o ./best.pt https://raw.githubusercontent.com/Monmon891Awesome/YOLO12ELCDPPCC/pneumai-clean-backup/best.pt; \
-    fi
+# Download YOLO model from GitHub (Railway-compatible)
+RUN curl -L -o ./best.pt https://raw.githubusercontent.com/Monmon891Awesome/YOLO12ELCDPPCC/pneumai-clean-backup/best.pt && \
+    echo "Model downloaded successfully" && \
+    ls -lh ./best.pt
 
 # Create uploads directory with proper permissions
 RUN mkdir -p /app/uploads/originals /app/uploads/annotated /app/uploads/thumbnails && \
