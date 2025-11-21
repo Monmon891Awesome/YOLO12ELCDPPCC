@@ -3,7 +3,7 @@
  * Handles all communication with the YOLOv12 backend for lung cancer detection
  */
 
-const API_BASE_URL = process.env.REACT_APP_YOLO_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_YOLO_API_URL || 'https://inspirational-ileana-nonsaleable.ngrok-free.dev';
 
 /**
  * Helper function to ensure image URLs are absolute
@@ -36,7 +36,7 @@ export const uploadScanForAnalysis = async (file, onProgress, patientId = null) 
     }
     formData.append('timestamp', new Date().toISOString());
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/scans/analyze`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/scan/analyze`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -136,7 +136,7 @@ export const uploadScanWithProgress = (file, onProgress, patientId = null) => {
     });
 
     // Send request
-    xhr.open('POST', `${API_BASE_URL}/api/v1/scans/analyze`);
+    xhr.open('POST', `${API_BASE_URL}/api/v1/scan/analyze`);
     xhr.send(formData);
   });
 };
@@ -162,6 +162,46 @@ export const getScanResult = async (scanId) => {
     return await response.json();
   } catch (error) {
     console.error('Error fetching scan result:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all scans
+ * @returns {Promise<Array>} - List of all scans
+ */
+export const getAllScans = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/scans`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch scans');
+    }
+
+    const result = await response.json();
+
+    // Fix relative URLs in the list
+    if (result.scans && Array.isArray(result.scans)) {
+      result.scans.forEach(scan => {
+        if (scan.results) {
+          if (scan.results.imageUrl) {
+            scan.results.imageUrl = ensureAbsoluteUrl(scan.results.imageUrl);
+          }
+          if (scan.results.annotatedImageUrl) {
+            scan.results.annotatedImageUrl = ensureAbsoluteUrl(scan.results.annotatedImageUrl);
+          }
+        }
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching all scans:', error);
     throw error;
   }
 };
@@ -276,6 +316,7 @@ export default {
   uploadScanForAnalysis,
   uploadScanWithProgress,
   getScanResult,
+  getAllScans,
   getPatientScans,
   uploadBatchScans,
   getDetectionThresholds,

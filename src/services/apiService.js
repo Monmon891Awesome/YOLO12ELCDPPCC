@@ -3,7 +3,7 @@
  * Handles API calls to the FastAPI backend
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://inspirational-ileana-nonsaleable.ngrok-free.dev';
 
 // ============================================================================
 // APPOINTMENT API

@@ -21,7 +21,7 @@ export const WebSocketProvider = ({ children }) => {
 
   const connect = useCallback(() => {
     try {
-      const ws = new WebSocket('ws://localhost:8000/ws/scans');
+      const ws = new WebSocket('wss://inspirational-ileana-nonsaleable.ngrok-free.dev/ws/scans');
 
       ws.onopen = () => {
         console.log('✓ WebSocket connected');

@@ -13,8 +13,8 @@ build/
 dist/
 
 # Model and large binaries
-best.pt
-*.pt
+# best.pt is included in repo (5.3 MB - under GitHub limit)
+# *.pt files are included for deployment
 
 # OS
 .DS_Store

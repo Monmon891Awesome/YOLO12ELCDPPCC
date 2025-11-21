@@ -6,6 +6,7 @@ import ScanCommentForm from './components/ScanCommentForm';
 import {
   getAllPatients,
   getAllScans,
+  fetchAllScans,
   getDashboardStats,
   formatDate,
   getScanCommentCount
@@ -32,8 +33,9 @@ const DoctorDashboard = ({ username, onLogout }) => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const allScans = getAllScans();
+  const loadData = async () => {
+    // Use fetchAllScans to get data from API and merge with local
+    const allScans = await fetchAllScans();
     const allPatients = getAllPatients();
 
     console.log('🔍 DoctorDashboard - Loading data:');
@@ -234,10 +236,9 @@ const DoctorDashboard = ({ username, onLogout }) => {
                               <td>{scan.patientName}</td>
                               <td>{formatDate(scan.uploadTime)}</td>
                               <td>
-                                <span className={`status-badge ${
-                                  scan.result === 'Reviewed' ? 'success' :
+                                <span className={`status-badge ${scan.result === 'Reviewed' ? 'success' :
                                   scan.result === 'Areas Detected' ? 'warning' : 'info'
-                                }`}>
+                                  }`}>
                                   {scan.result}
                                 </span>
                               </td>
@@ -271,9 +272,8 @@ const DoctorDashboard = ({ username, onLogout }) => {
                           <p>ID: {patient.id} | Age: {patient.age} | Last Visit: {patient.lastVisit}</p>
                         </div>
                         <div className="patient-attention-status">
-                          <span className={`status-badge ${
-                            patient.status === 'Urgent' ? 'danger' : 'warning'
-                          }`}>
+                          <span className={`status-badge ${patient.status === 'Urgent' ? 'danger' : 'warning'
+                            }`}>
                             {patient.status}
                           </span>
                           <button className="action-button-small">View Details</button>
@@ -327,10 +327,9 @@ const DoctorDashboard = ({ username, onLogout }) => {
                               <td>{patient.age}</td>
                               <td>{patient.lastVisit || 'N/A'}</td>
                               <td>
-                                <span className={`status-badge ${
-                                  patient.status === 'Stable' ? 'success' :
+                                <span className={`status-badge ${patient.status === 'Stable' ? 'success' :
                                   patient.status === 'Urgent' ? 'danger' : 'warning'
-                                }`}>
+                                  }`}>
                                   {patient.status || 'N/A'}
                                 </span>
                               </td>
@@ -471,12 +470,12 @@ const DoctorDashboard = ({ username, onLogout }) => {
                                       textTransform: 'uppercase',
                                       letterSpacing: '0.5px',
                                       background: scan.results?.riskLevel === 'high' ? '#fee2e2' :
-                                                 scan.results?.riskLevel === 'medium' ? '#fef3c7' :
-                                                 scan.results?.riskLevel === 'low' ? '#dbeafe' :
-                                                 scan.results?.riskLevel === 'none' ? '#d1fae5' : '#f3f4f6',
+                                        scan.results?.riskLevel === 'medium' ? '#fef3c7' :
+                                          scan.results?.riskLevel === 'low' ? '#dbeafe' :
+                                            scan.results?.riskLevel === 'none' ? '#d1fae5' : '#f3f4f6',
                                       color: scan.results?.riskLevel === 'high' ? '#dc2626' :
-                                            scan.results?.riskLevel === 'medium' ? '#ea580c' :
-                                            scan.results?.riskLevel === 'low' ? '#2563eb' :
+                                        scan.results?.riskLevel === 'medium' ? '#ea580c' :
+                                          scan.results?.riskLevel === 'low' ? '#2563eb' :
                                             scan.results?.riskLevel === 'none' ? '#16a34a' : '#6b7280'
                                     }}>
                                       {scan.results?.riskLevel || 'Unknown'}

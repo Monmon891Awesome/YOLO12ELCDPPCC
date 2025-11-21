@@ -4,6 +4,8 @@
  * Ensures data congruency and eliminates duplication
  */
 
+import { getAllScans as apiGetAllScans } from '../services/yoloApi';
+
 // ============ STORAGE KEYS ============
 const STORAGE_KEYS = {
   // User & Auth
@@ -196,6 +198,44 @@ export function getAllScans() {
 }
 
 /**
+ * Fetch all scans from backend API and merge with local storage
+ */
+export async function fetchAllScans() {
+  try {
+    const apiResult = await apiGetAllScans();
+    if (apiResult && apiResult.success && Array.isArray(apiResult.scans)) {
+      // Merge API scans with local scans (prefer API scans)
+      const localScans = getAllScans();
+
+      // Create a map of API scans by ID
+      const apiScanMap = new Map(apiResult.scans.map(s => [s.scanId, s]));
+
+      // Update local storage with API data
+      const mergedScans = [...apiResult.scans];
+
+      // Add any local scans that aren't in API (e.g. pending uploads)
+      localScans.forEach(localScan => {
+        if (!apiScanMap.has(localScan.scanId)) {
+          mergedScans.push(localScan);
+        }
+      });
+
+      // Sort by upload time (newest first)
+      mergedScans.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
+
+      // Update local storage
+      saveToStorage(STORAGE_KEYS.SCANS, mergedScans);
+
+      return mergedScans;
+    }
+    return getAllScans();
+  } catch (error) {
+    console.error('Error fetching scans from API:', error);
+    return getAllScans();
+  }
+}
+
+/**
  * Get scans by patient ID
  */
 export function getScansByPatientId(patientId) {
@@ -298,13 +338,13 @@ export function getAllPatients() {
 export function createPatient(patientData) {
   try {
     const patients = getAllPatients();
-    
+
     // Generate patient ID in format: PAT-YY-XXXX (e.g., PAT-25-0001)
     const year = new Date().getFullYear().toString().slice(-2);
     const existingPatients = patients.filter(p => p.id?.startsWith(`PAT-${year}`));
     const patientNumber = String(existingPatients.length + 1).padStart(4, '0');
     const patientId = `PAT-${year}-${patientNumber}`;
-    
+
     // Create new patient object
     const newPatient = {
       id: patientId,
@@ -323,15 +363,15 @@ export function createPatient(patientData) {
       address: '',
       medicalHistory: ''
     };
-    
+
     // Add to patients list
     patients.push(newPatient);
     saveToStorage(STORAGE_KEYS.PATIENTS, patients);
-    
+
     // Also add to users for authentication
     const users = getFromStorage(STORAGE_KEYS.USERS) || [];
     const userExists = users.some(u => u.email === patientData.email);
-    
+
     if (!userExists) {
       users.push({
         id: patientId,
@@ -344,7 +384,7 @@ export function createPatient(patientData) {
       });
       saveToStorage(STORAGE_KEYS.USERS, users);
     }
-    
+
     return newPatient;
   } catch (error) {
     console.error('Error creating patient:', error);

@@ -14,8 +14,9 @@ python start_backend.py
 
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, WebSocket, WebSocketDisconnect, Body
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, FileResponse
 from pydantic import BaseModel
 import cv2
 import numpy as np
@@ -418,6 +419,8 @@ def create_annotated_image(image: np.ndarray, detections: List[dict]) -> bytes:
 
 # Store uploaded images and results
 scan_images: Dict[str, dict] = {}
+# Store scan metadata for listing
+scans_metadata: List[dict] = []
 
 @app.on_event("startup")
 async def startup_event():
@@ -463,9 +466,10 @@ async def analyze_scan(scan: UploadFile = File(...)):
         }
 
         # Create response
-        base_url = "http://localhost:8000"
+        base_url = "https://inspirational-ileana-nonsaleable.ngrok-free.dev"
         response_data = {
             "scanId": scan_id,
+            "patientId": "Unknown", # Default, can be updated if patientId is sent
             "status": "completed",
             "uploadTime": datetime.utcnow().isoformat(),
             "processingTime": round(processing_time, 3),
@@ -480,6 +484,9 @@ async def analyze_scan(scan: UploadFile = File(...)):
                 "annotatedImageUrl": f"{base_url}/api/v1/scan/{scan_id}/annotated"
             }
         }
+        
+        # Store metadata
+        scans_metadata.append(response_data)
 
         # Broadcast scan completion to all connected clients
         await manager.broadcast({
@@ -521,6 +528,16 @@ async def get_annotated_image(scan_id: str):
 
     annotated_image = create_annotated_image(image, detections)
     return Response(content=annotated_image, media_type="image/jpeg")
+
+
+@app.get("/api/v1/scans")
+async def get_all_scans():
+    """Get all scans metadata"""
+    return {
+        "success": True,
+        "count": len(scans_metadata),
+        "scans": scans_metadata
+    }
 
 
 @app.websocket("/ws/scans")
@@ -655,6 +672,37 @@ async def delete_comment(comment_id: int):
         raise HTTPException(status_code=404, detail="Comment not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting comment: {str(e)}")
+
+
+
+# ============= STATIC FILES (FRONTEND) =============
+
+# Mount the build directory to serve static files
+# Check if build directory exists
+if os.path.exists("build"):
+    app.mount("/static", StaticFiles(directory="build/static"), name="static")
+    
+    # Serve root
+    @app.get("/")
+    async def serve_root():
+        return FileResponse("build/index.html")
+
+    # Catch-all route for SPA (must be last)
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Allow API routes to pass through (though they should be caught above)
+        if full_path.startswith("api/") or full_path.startswith("ws/"):
+            raise HTTPException(status_code=404, detail="Not found")
+            
+        # Serve index.html for any other route (client-side routing)
+        # Check if specific file exists in build root (e.g. manifest.json, favicon.ico)
+        file_path = os.path.join("build", full_path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        return FileResponse("build/index.html")
+else:
+    print("⚠️ 'build' directory not found. Frontend will not be served.")
 
 
 if __name__ == "__main__":
