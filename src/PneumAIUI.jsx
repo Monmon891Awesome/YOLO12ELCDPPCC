@@ -11,7 +11,8 @@ import PatientDashboard from './PatientDashboard'; // Import Patient Dashboard (
 import AdminDashboard from './AdminDashboard'; // Import Admin Dashboard (Classic)
 import AdminDashboardModern from './AdminDashboardModern'; // Import Admin Dashboard (Modern)
 // ...existing code...
-import DoctorDashboard from './DoctorDashboard'; // Import Doctor Dashboard
+import DoctorDashboard from './DoctorDashboard'; // Import Doctor Dashboard (Classic)
+import DoctorDashboardModern from './DoctorDashboardModern'; // Import Doctor Dashboard (Modern)
 import { initializeDatabase } from './utils/localDataManager'; // Import database initialization
 
 const PneumAIUI = () => {
@@ -126,7 +127,14 @@ const PneumAIUI = () => {
           return <AdminDashboard username={username} onLogout={handleLogout} onToggleDashboardStyle={toggleDashboardStyle} />;
       }
     } else if (userType === 'doctor') {
-      return <DoctorDashboard username={username} onLogout={handleLogout} />;
+      // Choose doctor dashboard style
+      switch (dashboardStyle) {
+        case 'modern':
+          return <DoctorDashboardModern username={username} onLogout={handleLogout} onToggleDashboardStyle={toggleDashboardStyle} />;
+        case 'classic':
+        default:
+          return <DoctorDashboard username={username} onLogout={handleLogout} onToggleDashboardStyle={toggleDashboardStyle} />;
+      }
     }
   }
   

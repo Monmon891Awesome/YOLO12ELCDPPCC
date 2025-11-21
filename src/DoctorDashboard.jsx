@@ -12,7 +12,7 @@ import {
   getScanCommentCount
 } from './utils/unifiedDataManager';
 
-const DoctorDashboard = ({ username, onLogout }) => {
+const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [patients, setPatients] = useState([]);
   const [scans, setScans] = useState([]);
@@ -20,6 +20,7 @@ const DoctorDashboard = ({ username, onLogout }) => {
   const [selectedScan, setSelectedScan] = useState(null);
   const [replyToComment, setReplyToComment] = useState(null);
   const [commentRefresh, setCommentRefresh] = useState(0);
+  const [imageBlobUrls, setImageBlobUrls] = useState({});
 
   // Current user object for comments
   const currentUser = {
@@ -32,6 +33,30 @@ const DoctorDashboard = ({ username, onLogout }) => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Helper function to fetch images with ngrok header and convert to blob URL
+  const fetchImageAsBlob = async (imageUrl) => {
+    if (!imageUrl || imageBlobUrls[imageUrl]) return imageBlobUrls[imageUrl];
+
+    try {
+      const response = await fetch(imageUrl, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch image');
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      setImageBlobUrls(prev => ({ ...prev, [imageUrl]: blobUrl }));
+      return blobUrl;
+    } catch (error) {
+      console.error('Error fetching image:', error);
+      return null;
+    }
+  };
 
   const loadData = async () => {
     // Use fetchAllScans to get data from API and merge with local
@@ -57,6 +82,18 @@ const DoctorDashboard = ({ username, onLogout }) => {
     setCommentRefresh(prev => prev + 1);
     setReplyToComment(null);
   };
+
+  // Fetch image blobs when scan is selected
+  useEffect(() => {
+    if (selectedScan) {
+      if (selectedScan.annotatedImageUrl) {
+        fetchImageAsBlob(selectedScan.annotatedImageUrl);
+      }
+      if (selectedScan.imageUrl) {
+        fetchImageAsBlob(selectedScan.imageUrl);
+      }
+    }
+  }, [selectedScan]);
 
   const handleReply = (comment) => {
     setReplyToComment(comment);
@@ -647,7 +684,12 @@ const DoctorDashboard = ({ username, onLogout }) => {
                           }}>
                             {selectedScan.annotatedImageUrl || selectedScan.imageUrl ? (
                               <img
-                                src={selectedScan.annotatedImageUrl || selectedScan.imageUrl}
+                                src={
+                                  imageBlobUrls[selectedScan.annotatedImageUrl] ||
+                                  imageBlobUrls[selectedScan.imageUrl] ||
+                                  selectedScan.annotatedImageUrl ||
+                                  selectedScan.imageUrl
+                                }
                                 alt="CT Scan"
                                 style={{
                                   width: '100%',
@@ -782,6 +824,97 @@ const DoctorDashboard = ({ username, onLogout }) => {
                       </div>
                     </div>
                   )}
+                </div>
+              </>
+            )}
+
+            {activeTab === 'settings' && (
+              <>
+                <div className="admin-header">
+                  <h1>Settings</h1>
+                </div>
+
+                <div className="dashboard-card">
+                  <div className="card-header">
+                    <h3>Dashboard Appearance</h3>
+                  </div>
+                  <div style={{ padding: '1.5rem' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '1rem',
+                      background: '#f9fafb',
+                      borderRadius: '8px'
+                    }}>
+                      <div>
+                        <p style={{ margin: '0 0 0.25rem 0', fontWeight: '600', color: '#111827' }}>Dashboard Style</p>
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+                          Switch to modern dashboard layout with enhanced visuals
+                        </p>
+                      </div>
+                      <button
+                        onClick={onToggleDashboardStyle}
+                        className="table-action-button"
+                        style={{
+                          padding: '0.625rem 1.25rem',
+                          background: 'linear-gradient(135deg, #7B6BBE 0%, #9B8BCE 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          transition: 'all 0.2s',
+                          boxShadow: '0 2px 4px rgba(123, 107, 190, 0.2)'
+                        }}
+                      >
+                        Switch to Modern
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dashboard-card">
+                  <div className="card-header">
+                    <h3>Account Settings</h3>
+                  </div>
+                  <div style={{ padding: '1.5rem' }}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        value={username}
+                        disabled
+                        style={{
+                          width: '100%',
+                          padding: '0.625rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          background: '#f3f4f6',
+                          color: '#6b7280',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <button
+                      style={{
+                        padding: '0.625rem 1.25rem',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Change Password
+                    </button>
+                  </div>
                 </div>
               </>
             )}
