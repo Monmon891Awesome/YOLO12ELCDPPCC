@@ -20,6 +20,7 @@ const DoctorDashboardModern = ({ username, onLogout, onToggleDashboardStyle }) =
   const [selectedScan, setSelectedScan] = useState(null);
   const [replyToComment, setReplyToComment] = useState(null);
   const [commentRefresh, setCommentRefresh] = useState(0);
+  const [imageBlobUrls, setImageBlobUrls] = useState({});
   const { darkMode, toggleDarkMode } = useTheme();
 
   // Current user object for comments
@@ -33,6 +34,30 @@ const DoctorDashboardModern = ({ username, onLogout, onToggleDashboardStyle }) =
   useEffect(() => {
     loadData();
   }, []);
+
+  // Helper function to fetch images with ngrok header and convert to blob URL
+  const fetchImageAsBlob = async (imageUrl) => {
+    if (!imageUrl || imageBlobUrls[imageUrl]) return imageBlobUrls[imageUrl];
+
+    try {
+      const response = await fetch(imageUrl, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch image');
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      setImageBlobUrls(prev => ({ ...prev, [imageUrl]: blobUrl }));
+      return blobUrl;
+    } catch (error) {
+      console.error('Error fetching image:', error);
+      return null;
+    }
+  };
 
   const loadData = async () => {
     const allScans = await fetchAllScans();
@@ -55,6 +80,18 @@ const DoctorDashboardModern = ({ username, onLogout, onToggleDashboardStyle }) =
     setCommentRefresh(prev => prev + 1);
     setReplyToComment(null);
   };
+
+  // Fetch image blobs when scan is selected
+  useEffect(() => {
+    if (selectedScan) {
+      if (selectedScan.annotatedImageUrl) {
+        fetchImageAsBlob(selectedScan.annotatedImageUrl);
+      }
+      if (selectedScan.imageUrl) {
+        fetchImageAsBlob(selectedScan.imageUrl);
+      }
+    }
+  }, [selectedScan]);
 
   const handleReply = (comment) => {
     setReplyToComment(comment);
@@ -583,7 +620,12 @@ const DoctorDashboardModern = ({ username, onLogout, onToggleDashboardStyle }) =
                         <div className="bg-black rounded-xl overflow-hidden border-2 border-gray-200 dark:border-dark-600">
                           {selectedScan.annotatedImageUrl || selectedScan.imageUrl ? (
                             <img
-                              src={selectedScan.annotatedImageUrl || selectedScan.imageUrl}
+                              src={
+                                imageBlobUrls[selectedScan.annotatedImageUrl] ||
+                                imageBlobUrls[selectedScan.imageUrl] ||
+                                selectedScan.annotatedImageUrl ||
+                                selectedScan.imageUrl
+                              }
                               alt="CT Scan"
                               className="w-full h-auto object-contain"
                               style={{ maxHeight: '500px' }}
