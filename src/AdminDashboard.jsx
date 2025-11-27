@@ -219,7 +219,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <div className="metric-card" style={{ background: '#f0f9ff', padding: '1.2rem', borderRadius: '12px', border: '1px solid #bae6fd' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                       <Target size={24} color="#0284c7" />
-                      <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>AI Detection Accuracy</h4>
+                      <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>AI Indication Accuracy</h4>
                     </div>
                     <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0c4a6e', margin: '0.25rem 0' }}>96.8%</p>
                     <p style={{ fontSize: '0.75rem', color: '#0369a1', margin: 0 }}>↑ 2.3% from last month</p>
@@ -264,7 +264,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                       <div className="stat-item">
                         <h4>Classification Accuracy</h4>
                         <p className="stat-value" style={{ color: '#16a34a' }}>96.8%</p>
-                        <small style={{ color: '#666', fontSize: '0.75rem' }}>Adenocarcinoma detection</small>
+                        <small style={{ color: '#666', fontSize: '0.75rem' }}>Adenocarcinoma indication</small>
                       </div>
                       <div className="stat-item">
                         <h4>Sensitivity Rate</h4>
@@ -292,7 +292,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                     </div>
                     <div className="stats-grid">
                       <div className="stat-item">
-                        <h4>Early Detection Rate</h4>
+                        <h4>Early Indication Rate</h4>
                         <p className="stat-value" style={{ color: '#7c3aed' }}>87%</p>
                         <small style={{ color: '#666', fontSize: '0.75rem' }}>Stage I-II diagnoses</small>
                       </div>
@@ -476,7 +476,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                             <td>{patient.lastVisit}</td>
                             <td>
                               <span className={`status-badge ${patient.status === 'Urgent' ? 'danger' :
-                                  patient.status === 'Follow-up Required' ? 'warning' : 'success'
+                                patient.status === 'Follow-up Required' ? 'warning' : 'success'
                                 }`}>
                                 {patient.status}
                               </span>
@@ -618,7 +618,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                               <th>Upload Date</th>
                               <th>Risk Level</th>
                               <th>Confidence</th>
-                              <th>Detection</th>
+                              <th>Indication</th>
                               <th>Comments</th>
                               <th>Actions</th>
                             </tr>
@@ -635,9 +635,9 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                   <td>{formatDate(scan.uploadTime)}</td>
                                   <td>
                                     <span className={`status-badge ${scan.results?.riskLevel === 'none' ? 'success' :
-                                        scan.results?.riskLevel === 'low' ? 'info' :
-                                          scan.results?.riskLevel === 'medium' ? 'warning' :
-                                            scan.results?.riskLevel === 'high' ? 'danger' : ''
+                                      scan.results?.riskLevel === 'low' ? 'info' :
+                                        scan.results?.riskLevel === 'medium' ? 'warning' :
+                                          scan.results?.riskLevel === 'high' ? 'danger' : ''
                                       }`}>
                                       {(scan.results?.riskLevel || 'unknown').toUpperCase()}
                                     </span>
@@ -645,9 +645,9 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                   <td><strong>{((scan.results?.confidence || 0) * 100).toFixed(1)}%</strong></td>
                                   <td>
                                     {scan.results?.detected ? (
-                                      <span className="badge-warning">Areas Detected</span>
+                                      <span className="badge-warning">Areas of Interest</span>
                                     ) : (
-                                      <span className="badge-success">None Detected</span>
+                                      <span className="badge-success">None Indicated</span>
                                     )}
                                   </td>
                                   <td>
@@ -783,7 +783,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                     <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
                       <p style={{ color: '#666' }}>Performance metrics show consistent improvement across all categories:</p>
                       <ul style={{ textAlign: 'left', color: '#666', lineHeight: '1.8' }}>
-                        <li>Detection accuracy improved by 2.3% over the past month</li>
+                        <li>Indication accuracy improved by 2.3% over the past month</li>
                         <li>Average response time decreased by 0.5 seconds</li>
                         <li>User satisfaction increased from 4.5 to 4.7</li>
                         <li>System uptime maintained at 99.7%</li>
@@ -1065,7 +1065,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <div style={{ padding: '1rem', background: '#fff7ed', borderRadius: '8px' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0' }}>How accurate is the AI detection system?</h4>
+                        <h4 style={{ margin: '0 0 0.5rem 0' }}>How accurate is the AI indication system?</h4>
                         <p style={{ fontSize: '0.9rem', color: '#666', margin: 0 }}>
                           The system achieves 96.8% accuracy for lung cancer classification with 94.2% sensitivity and 97.5% specificity. Results are validated against expert radiologist assessments and continuously improved through machine learning.
                         </p>
@@ -1298,7 +1298,13 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 <div style={{ background: '#000', borderRadius: '8px', overflow: 'hidden' }}>
                   {selectedScan.annotatedImageUrl || selectedScan.imageUrl ? (
                     <img
-                      src={selectedScan.annotatedImageUrl || selectedScan.imageUrl}
+                      src={
+                        (selectedScan.annotatedImageUrl || selectedScan.imageUrl)
+                          ? (selectedScan.annotatedImageUrl || selectedScan.imageUrl).startsWith('http')
+                            ? (selectedScan.annotatedImageUrl || selectedScan.imageUrl)
+                            : `http://localhost:8000${selectedScan.annotatedImageUrl || selectedScan.imageUrl}`
+                          : '/assets/lungs.png'
+                      }
                       alt="CT Scan"
                       style={{
                         width: '100%',
@@ -1328,9 +1334,9 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <div style={{ marginBottom: '1rem' }}>
                     <h4 style={{ margin: '0 0 0.5rem 0', color: '#6b7280', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase' }}>Risk Level</h4>
                     <span className={`status-badge ${selectedScan.results?.riskLevel === 'none' ? 'success' :
-                        selectedScan.results?.riskLevel === 'low' ? 'info' :
-                          selectedScan.results?.riskLevel === 'medium' ? 'warning' :
-                            selectedScan.results?.riskLevel === 'high' ? 'danger' : ''
+                      selectedScan.results?.riskLevel === 'low' ? 'info' :
+                        selectedScan.results?.riskLevel === 'medium' ? 'warning' :
+                          selectedScan.results?.riskLevel === 'high' ? 'danger' : ''
                       }`} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
                       {(selectedScan.results?.riskLevel || 'unknown').toUpperCase()}
                     </span>
@@ -1344,9 +1350,9 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#6b7280', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase' }}>Detection Status</h4>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#6b7280', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase' }}>Analysis Status</h4>
                     <p style={{ margin: 0, fontSize: '1rem', color: '#374151' }}>
-                      {selectedScan.results?.detected ? '⚠️ Areas of concern detected' : '✅ No areas of concern detected'}
+                      {selectedScan.results?.detected ? '⚠️ Areas of concern indicated' : '✅ No areas of concern indicated'}
                     </p>
                   </div>
 

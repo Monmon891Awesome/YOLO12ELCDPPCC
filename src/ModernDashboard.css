@@ -1,0 +1,275 @@
+/* Modern Dashboard Mobile Enhancements */
+
+/* Base styles for modern dashboards */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Mobile-specific fixes for navigation tabs */
+@media (max-width: 768px) {
+
+    /* Header adjustments */
+    .sticky.top-0 {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
+    /* Tab navigation - make scrollable and readable */
+    .overflow-x-auto {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* Firefox */
+        -ms-overflow-style: none;
+        /* IE/Edge */
+    }
+
+    .overflow-x-auto::-webkit-scrollbar {
+        display: none;
+        /* Chrome/Safari */
+    }
+
+    /* Tab pills - ensure minimum size */
+    .flex.space-x-2 button {
+        flex-shrink: 0 !important;
+        min-width: fit-content !important;
+        padding: 0.625rem 1.25rem !important;
+        font-size: 0.875rem !important;
+        white-space: nowrap !important;
+    }
+
+    /* Reduce header padding */
+    .px-6.py-4 {
+        padding: 0.75rem 1rem !important;
+    }
+
+    .px-6.pb-3 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+
+    /* Main content padding */
+    .max-w-7xl.mx-auto.px-6.py-8 {
+        padding: 1rem !important;
+    }
+
+    /* Grid adjustments - stack on mobile */
+    .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4,
+    .grid.grid-cols-1.md\:grid-cols-4 {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    /* Stat cards - better mobile sizing */
+    .rounded-2xl.p-6 {
+        padding: 1.25rem !important;
+    }
+
+    /* Text sizing */
+    .text-3xl {
+        font-size: 1.5rem !important;
+        line-height: 2rem !important;
+    }
+
+    .text-2xl {
+        font-size: 1.25rem !important;
+        line-height: 1.75rem !important;
+    }
+
+    .text-xl {
+        font-size: 1.125rem !important;
+        line-height: 1.75rem !important;
+    }
+
+    .text-4xl {
+        font-size: 2rem !important;
+        line-height: 1 !important;
+    }
+
+    /* Table responsiveness */
+    .overflow-x-auto table {
+        min-width: 100%;
+        display: block;
+        overflow-x: auto;
+    }
+
+    /* Modal adjustments */
+    .fixed.inset-0 {
+        padding: 0.5rem !important;
+    }
+
+    .max-w-6xl,
+    .max-w-2xl,
+    .max-w-lg,
+    .max-w-3xl {
+        max-width: 100% !important;
+    }
+
+    .max-h-\[90vh\] {
+        max-height: 95vh !important;
+    }
+
+    /* Form inputs */
+    .w-full.px-4.py-2 {
+        padding: 0.75rem 1rem !important;
+    }
+
+    /* Space between elements */
+    .space-y-6>*+* {
+        margin-top: 1.25rem !important;
+    }
+
+    .space-y-4>*+* {
+        margin-top: 1rem !important;
+    }
+
+    /* Notification dropdown */
+    .absolute.right-0.mt-2.w-80 {
+        width: calc(100vw - 2rem) !important;
+        right: 1rem !important;
+    }
+}
+
+/* Extra small devices (iPhone SE, etc.) */
+@media (max-width: 480px) {
+
+    /* Even smaller text */
+    .text-3xl {
+        font-size: 1.25rem !important;
+        line-height: 1.75rem !important;
+    }
+
+    .text-2xl {
+        font-size: 1.125rem !important;
+        line-height: 1.5rem !important;
+    }
+
+    .text-xl {
+        font-size: 1rem !important;
+        line-height: 1.5rem !important;
+    }
+
+    /* Tighter spacing */
+    .max-w-7xl.mx-auto.px-6.py-8 {
+        padding: 0.75rem !important;
+    }
+
+    .rounded-2xl.p-6 {
+        padding: 1rem !important;
+    }
+
+    /* Tab pills - smaller on very small screens */
+    .flex.space-x-2 button {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.8125rem !important;
+    }
+
+    /* Hide less important UI elements */
+    .text-sm.bg-white\/20 {
+        display: none !important;
+    }
+
+    /* Stack user info */
+    .flex.items-center.space-x-3 {
+        flex-direction: column !important;
+        align-items: flex-end !important;
+    }
+
+    .flex.items-center.space-x-3>span {
+        margin-top: 0.25rem !important;
+    }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .sticky.top-0 {
+        position: relative !important;
+    }
+
+    .max-h-\[90vh\] {
+        max-height: 80vh !important;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+
+    /* Larger touch targets for buttons */
+    button {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+
+    /* Larger tap areas for navigation */
+    .flex.space-x-2 button {
+        padding: 0.75rem 1.5rem !important;
+    }
+}
+
+/* Dark mode mobile adjustments */
+@media (max-width: 768px) {
+    .dark\:bg-dark-900 {
+        background-color: #0f172a !important;
+    }
+
+    .dark\:bg-dark-800 {
+        background-color: #1e293b !important;
+    }
+
+    .dark\:bg-dark-700 {
+        background-color: #334155 !important;
+    }
+
+    .dark\:text-white {
+        color: #ffffff !important;
+    }
+
+    .dark\:text-gray-300 {
+        color: #d1d5db !important;
+    }
+}
+
+/* Utility: Hide scrollbar but keep functionality */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Utility: Better mobile spacing */
+.mobile-spacing {
+    padding: 1rem;
+}
+
+@media (min-width: 768px) {
+    .mobile-spacing {
+        padding: 2rem;
+    }
+}
+
+/* Fix for pill navigation overflow indicator */
+.overflow-x-auto::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    background: linear-gradient(to right, transparent, white);
+    pointer-events: none;
+}
+
+.dark .overflow-x-auto::after {
+    background: linear-gradient(to right, transparent, #1e293b);
+}
+
+@media (max-width: 768px) {
+    .overflow-x-auto::after {
+        display: none;
+    }
+}

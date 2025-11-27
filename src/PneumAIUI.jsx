@@ -13,7 +13,7 @@ import AdminDashboardModern from './AdminDashboardModern'; // Import Admin Dashb
 // ...existing code...
 import DoctorDashboard from './DoctorDashboard'; // Import Doctor Dashboard (Classic)
 import DoctorDashboardModern from './DoctorDashboardModern'; // Import Doctor Dashboard (Modern)
-import { initializeDatabase } from './utils/localDataManager'; // Import database initialization
+import { initializeDatabase } from './utils/unifiedDataManager'; // Import database initialization
 
 const PneumAIUI = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -45,51 +45,51 @@ const PneumAIUI = () => {
       setDashboardStyle(dashboardPref);
     }
   }, []);
-  
+
   // Handle login button click
   const handleLoginClick = () => {
     setShowLogin(true);
     setIsMenuOpen(false); // Close mobile menu if open
   };
-  
+
   // Handle login form submission
   const handleLogin = (type, user) => {
     setIsLoggedIn(true);
     setUserType(type);
     setUsername(user);
     setShowLogin(false);
-    
+
     // Save session to localStorage
     const session = { userType: type, username: user };
     localStorage.setItem('pneumAISession', JSON.stringify(session));
   };
-  
+
   // Handle logout
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUserType(null);
     setUsername('');
-    
+
     // Remove session from localStorage
     localStorage.removeItem('pneumAISession');
   };
-  
+
   // Close login modal
   const handleCloseLogin = () => {
     setShowLogin(false);
   };
-  
+
   // Open registration form
   const handleRegisterClick = () => {
     setShowLogin(false);
     setShowRegistration(true);
   };
-  
+
   // Close registration form
   const handleCloseRegistration = () => {
     setShowRegistration(false);
   };
-  
+
   // Return to login from registration
   const handleBackToLogin = () => {
     setShowRegistration(false);
@@ -104,7 +104,7 @@ const PneumAIUI = () => {
     const newStyle = styles[nextIndex];
     setDashboardStyle(newStyle);
     localStorage.setItem('dashboardStyle', newStyle);
-  } 
+  }
 
   // If user is logged in, show the appropriate dashboard
   if (isLoggedIn) {
@@ -137,7 +137,7 @@ const PneumAIUI = () => {
       }
     }
   }
-  
+
   return (
     <div className="app">
       {/* Header */}
@@ -147,7 +147,7 @@ const PneumAIUI = () => {
             <img src="/assets/logo-medic.jpg" alt="PneumAI Logo" className="logo-image" />
             <h1 className="logo-text">PneumAI</h1>
           </div>
-          
+
           {/* Desktop Navigation */}
           <nav className="desktop-nav">
             <a href="#" className="nav-link">Home</a>
@@ -155,9 +155,9 @@ const PneumAIUI = () => {
               <LogIn className="icon-sm" /> Sign In
             </button>
           </nav>
-          
+
           {/* Mobile menu button */}
-          <button 
+          <button
             className="mobile-menu-button"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             type="button"
@@ -165,7 +165,7 @@ const PneumAIUI = () => {
             {isMenuOpen ? <X className="icon" /> : <Menu className="icon" />}
           </button>
         </div>
-        
+
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="mobile-nav">
@@ -178,7 +178,7 @@ const PneumAIUI = () => {
           </div>
         )}
       </header>
-      
+
       {/* Hero Section */}
       <section className="hero-section">
         <div className="lung-background-left"></div>
@@ -186,8 +186,8 @@ const PneumAIUI = () => {
         <div className="container hero-container">
           <div className="hero-content">
             <div className="hero-badge">AI-Assisted Healthcare Support</div>
-            <h2 className="hero-title">Supporting Lung Cancer Detection and Care</h2>
-            <p className="hero-description">AI-powered analysis tool designed to assist healthcare professionals in reviewing CT scans, paired with comprehensive patient support resources. A supportive tool to help in the detection and analysis of lung conditions.</p>
+            <h2 className="hero-title">Supporting Lung Cancer Analysis and Care</h2>
+            <p className="hero-description">AI-powered analysis tool designed to assist healthcare professionals in reviewing CT scans, paired with comprehensive patient support resources. A supportive tool to help in the analysis and indication of lung conditions.</p>
             <div className="hero-buttons">
               <button className="hero-button-primary" onClick={handleLoginClick} type="button">
                 <Upload className="icon-sm" /> Patient Portal
@@ -209,13 +209,13 @@ const PneumAIUI = () => {
           </div>
         </div>
       </section>
-      
+
       {/* Rest of the component remains unchanged */}
       {/* Features Section */}
       <section className="features-section">
         <div className="container">
           <h2 className="section-title">How PneumAI Works</h2>
-          
+
           <div className="features-grid">
             {/* Feature 1 */}
             <div className="feature-card">
@@ -225,7 +225,7 @@ const PneumAIUI = () => {
               <h3 className="feature-title">AI-Assisted Analysis</h3>
               <p className="feature-description">Machine learning algorithms assist in analyzing CT scans to help identify potential areas of concern for healthcare professional review.</p>
             </div>
-            
+
             {/* Feature 2 */}
             <div className="feature-card">
               <div className="feature-icon-container">
@@ -234,7 +234,7 @@ const PneumAIUI = () => {
               <h3 className="feature-title">Healthcare Professional Support</h3>
               <p className="feature-description">Healthcare professionals receive detailed insights and analysis results to support their diagnostic review and treatment planning.</p>
             </div>
-            
+
             {/* Feature 3 */}
             <div className="feature-card">
               <div className="feature-icon-container">
@@ -246,7 +246,7 @@ const PneumAIUI = () => {
           </div>
         </div>
       </section>
-      
+
       {/* Doctor Platform Preview */}
       <section className="platform-section">
         <div className="container">
@@ -254,7 +254,7 @@ const PneumAIUI = () => {
           <p className="platform-description">
             A supportive analysis tool designed for healthcare professionals to review CT scans with AI-assisted insights.
           </p>
-          
+
           {/* Sample Dashboard */}
           <div className="dashboard-container">
             <div className="dashboard-header">
@@ -270,33 +270,33 @@ const PneumAIUI = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="dashboard-content">
               {/* Sidebar */}
               <div className="dashboard-sidebar">
                 <div className="sidebar-nav">
-                  <button 
+                  <button
                     className={`sidebar-nav-button ${activeTab === 'dashboard' ? 'active' : ''}`}
                     onClick={() => setActiveTab('dashboard')}
                     type="button"
                   >
                     <Home className="icon-sm" /> Dashboard
                   </button>
-                  <button 
+                  <button
                     className={`sidebar-nav-button ${activeTab === 'patients' ? 'active' : ''}`}
                     onClick={() => setActiveTab('patients')}
                     type="button"
                   >
                     <Users className="icon-sm" /> Patients
                   </button>
-                  <button 
+                  <button
                     className={`sidebar-nav-button ${activeTab === 'scans' ? 'active' : ''}`}
                     onClick={() => setActiveTab('scans')}
                     type="button"
                   >
                     <Layers className="icon-sm" /> CT Scans
                   </button>
-                  <button 
+                  <button
                     className={`sidebar-nav-button ${activeTab === 'reports' ? 'active' : ''}`}
                     onClick={() => setActiveTab('reports')}
                     type="button"
@@ -305,7 +305,7 @@ const PneumAIUI = () => {
                   </button>
                 </div>
               </div>
-              
+
               {/* Main Content */}
               <div className="dashboard-main">
                 <div className="main-header">
@@ -314,7 +314,7 @@ const PneumAIUI = () => {
                     <Upload className="icon-sm" /> Upload New Scan
                   </button>
                 </div>
-                
+
                 <div className="scan-grid">
                   {/* Scan Viewer */}
                   <div className="scan-viewer">
@@ -324,26 +324,26 @@ const PneumAIUI = () => {
                       className="scan-image"
                     />
                   </div>
-                  
+
                   {/* Analysis Results */}
                   <div className="analysis-container">
                     <h4 className="analysis-title">AI Analysis Results</h4>
-                    
+
                     <div className="analysis-content">
                       <div className="analysis-section">
                         <div className="probability-header">
                           <span className="probability-label">Areas Requiring Attention</span>
-                          <span className="probability-value">Detected</span>
+                          <span className="probability-value">Indicated</span>
                         </div>
                       </div>
-                      
+
                       <div className="section-divider">
-                        <h5 className="section-subtitle">Detected Abnormalities</h5>
+                        <h5 className="section-subtitle">Indicated Abnormalities</h5>
                         <ul className="abnormality-list">
                           <li className="abnormality-item">
                             <ChevronRight className="abnormality-icon icon-sm" />
                             <div className="abnormality-content">
-                              <p className="abnormality-title">Nodule detected in right upper lobe</p>
+                              <p className="abnormality-title">Nodule indicated in right upper lobe</p>
                               <p className="abnormality-details">Size: 1.8cm x 1.4cm, Irregular borders</p>
                             </div>
                           </li>
@@ -356,7 +356,7 @@ const PneumAIUI = () => {
                           </li>
                         </ul>
                       </div>
-                      
+
                       <div className="section-divider">
                         <h5 className="section-subtitle">Suggested Considerations</h5>
                         <ul className="action-list">
@@ -375,7 +375,7 @@ const PneumAIUI = () => {
                         </ul>
                       </div>
                     </div>
-                    
+
                     <div className="analysis-actions">
                       <button type="button" className="primary-button">
                         Generate Detailed Report
@@ -386,7 +386,7 @@ const PneumAIUI = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="patient-info">
                   <h4 className="patient-title">Patient Information</h4>
                   <div className="patient-card">
@@ -408,7 +408,7 @@ const PneumAIUI = () => {
                         <p className="field-value">May 3, 2025</p>
                       </div>
                     </div>
-                    
+
                     <div className="patient-notes">
                       <p className="notes-label">Clinical Notes</p>
                       <p className="notes-text">Patient presents with persistent cough for 3 months. Former smoker (2 packs/day for 20 years, quit 5 years ago). Family history of lung cancer.</p>
@@ -477,7 +477,7 @@ const PneumAIUI = () => {
             Our platform provides comprehensive emotional and psychological support for patients
             dealing with lung conditions and cancer diagnoses.
           </p>
-          
+
           <div className="support-grid">
             {/* Support Card 1 */}
             <div className="support-card">
@@ -490,7 +490,7 @@ const PneumAIUI = () => {
                 Join a community <ChevronRight className="icon-sm" />
               </a>
             </div>
-            
+
             {/* Support Card 2 */}
             <div className="support-card">
               <div className="support-icon-container">
@@ -502,7 +502,7 @@ const PneumAIUI = () => {
                 Browse resources <ChevronRight className="icon-sm" />
               </a>
             </div>
-            
+
             {/* Support Card 3 */}
             <div className="support-card">
               <div className="support-icon-container">
@@ -517,19 +517,19 @@ const PneumAIUI = () => {
           </div>
         </div>
       </section>
-      
+
       {/* Login Modal */}
       {showLogin && (
-        <Login 
-          onClose={handleCloseLogin} 
-          onLogin={handleLogin} 
+        <Login
+          onClose={handleCloseLogin}
+          onLogin={handleLogin}
           onRegister={handleRegisterClick}
         />
       )}
-      
+
       {/* Patient Registration Modal */}
       {showRegistration && (
-        <PatientRegistration 
+        <PatientRegistration
           onClose={handleCloseRegistration}
           onBackToLogin={handleBackToLogin}
         />

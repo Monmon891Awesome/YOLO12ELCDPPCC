@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Doctor Account - PneumAI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #7B6BBE 0%, #A78BFA 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #7B6BBE;
+            margin-top: 0;
+        }
+        .info {
+            background: #f3f4f6;
+            border-left: 4px solid #7B6BBE;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info strong {
+            color: #7B6BBE;
+        }
+        button {
+            background: linear-gradient(135deg, #7B6BBE 0%, #9B8BCE 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(123, 107, 190, 0.3);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .success {
+            background: #d1fae5;
+            border-left-color: #10b981;
+            color: #065f46;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left-color: #f59e0b;
+            color: #92400e;
+        }
+        code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo h2 {
+            color: #7B6BBE;
+            margin: 0;
+            font-size: 32px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h2>🫁 PneumAI</h2>
+        </div>
+        <h1>Add Test Doctor Account</h1>
+
+        <div class="info">
+            <p><strong>Email:</strong> <code>test@doctor.com</code></p>
+            <p><strong>Password:</strong> <code>doctor123</code></p>
+            <p><strong>Name:</strong> Dr. Test Doctor</p>
+            <p><strong>Specialization:</strong> Pulmonology</p>
+        </div>
+
+        <div class="warning" style="margin: 20px 0;">
+            <strong>⚠️ Important:</strong> Make sure you're on <code>localhost:3000</code> for this to work!
+        </div>
+
+        <button onclick="addDoctorAccount()" id="addBtn">
+            Add Doctor Account to System
+        </button>
+
+        <button onclick="addUserCredentials()" id="userBtn" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+            Add Login Credentials
+        </button>
+
+        <button onclick="window.location.href='http://localhost:3000'" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            Open PneumAI App
+        </button>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function addDoctorAccount() {
+            try {
+                const doctor = {
+                    id: 'DOC-TEST',
+                    name: 'Dr. Test Doctor',
+                    email: 'test@doctor.com',
+                    password: 'doctor123',
+                    specialty: 'Pulmonology',
+                    phone: '(555) 999-TEST',
+                    image: '/assets/logo-medic.jpg',
+                    availability: 'Available Mon-Fri 9AM-5PM',
+                    yearsOfExperience: 5,
+                    bio: 'Test doctor account for demo purposes.',
+                    userType: 'doctor',
+                    createdAt: new Date().toISOString()
+                };
+
+                // Get existing doctors
+                let doctors = JSON.parse(localStorage.getItem('pneumai_doctors') || '[]');
+
+                // Check if doctor already exists
+                const exists = doctors.find(d => d.email === doctor.email);
+                if (exists) {
+                    showStatus('Doctor account already exists!', 'warning');
+                    return;
+                }
+
+                // Add new doctor
+                doctors.push(doctor);
+                localStorage.setItem('pneumai_doctors', JSON.stringify(doctors));
+
+                showStatus('✅ Doctor account added successfully! You can now login.', 'success');
+                document.getElementById('addBtn').disabled = true;
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'warning');
+            }
+        }
+
+        function addUserCredentials() {
+            try {
+                const user = {
+                    email: 'test@doctor.com',
+                    password: 'doctor123',
+                    role: 'doctor',
+                    name: 'Dr. Test Doctor',
+                    id: 'DOC-TEST',
+                    userType: 'doctor'
+                };
+
+                // Get existing users
+                let users = JSON.parse(localStorage.getItem('pneumai_users') || '[]');
+
+                // Check if user already exists
+                const exists = users.find(u => u.email === user.email);
+                if (exists) {
+                    showStatus('User credentials already exist!', 'warning');
+                    return;
+                }
+
+                // Add new user
+                users.push(user);
+                localStorage.setItem('pneumai_users', JSON.stringify(users));
+
+                showStatus('✅ Login credentials added! You can now login with test@doctor.com / doctor123', 'success');
+                document.getElementById('userBtn').disabled = true;
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'warning');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = 'info ' + type;
+            status.innerHTML = message;
+            status.style.marginTop = '20px';
+        }
+
+        // Check if we're on localhost
+        if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+            showStatus('⚠️ Please open this file while visiting localhost:3000 first, then come back to this page!', 'warning');
+        }
+    </script>
+</body>
+</html>

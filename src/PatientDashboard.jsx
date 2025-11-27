@@ -48,7 +48,8 @@ import {
   getDashboardStats,
   formatDate,
   savePatientProfile,
-  getScanCommentCount
+  getScanCommentCount,
+  updateUserProfileImage
 } from './utils/unifiedDataManager';
 
 const PatientDashboard = ({ username, onLogout }) => {
@@ -410,12 +411,25 @@ const PatientDashboard = ({ username, onLogout }) => {
       }, 2000);
     }, 1500);
   };
-  
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && patientProfile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageUrl = reader.result;
+        updateUserProfileImage(patientProfile.id, imageUrl);
+        setPatientProfile(prev => ({ ...prev, image: imageUrl }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Toggle mobile sidebar
   const toggleMobileSidebar = () => {
     setShowMobileSidebar(!showMobileSidebar);
   };
-  
+
   return (
     <div className="dashboard-layout">
       {/* Decorative lung backgrounds */}
@@ -430,7 +444,7 @@ const PatientDashboard = ({ username, onLogout }) => {
       >
         <Menu size={24} />
       </button>
-      
+
       {/* Sidebar */}
       <aside className={`dashboard-sidebar ${showMobileSidebar ? 'show' : ''}`}>
         <div className="sidebar-header">
@@ -444,19 +458,41 @@ const PatientDashboard = ({ username, onLogout }) => {
             <X size={20} />
           </button>
         </div>
-        
+
         <div className="user-profile">
-          <div className="user-avatar">
-            <User className="avatar-icon" />
+          <div className="user-avatar relative group cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="patient-avatar-upload"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="patient-avatar-upload" className="cursor-pointer block w-full h-full">
+              {patientProfile?.image ? (
+                <img
+                  src={patientProfile.image}
+                  alt="Profile"
+                  className="w-full h-full rounded-full object-cover"
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <User className="avatar-icon" />
+              )}
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all flex items-center justify-center" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0)', transition: 'background 0.2s' }}>
+                <span className="text-white opacity-0 group-hover:opacity-100 text-xs" style={{ color: 'white', opacity: 0, fontSize: '0.75rem' }}>Edit</span>
+              </div>
+            </label>
           </div>
           <div className="user-info-sidebar">
             <span className="username-sidebar">Welcome,</span>
             <span className="username-value">{patientProfile?.name || username}</span>
           </div>
         </div>
-        
+
         <div className="sidebar-menu">
-          <button 
+          <button
             className={`sidebar-item ${activeTab === 'home' ? 'active' : ''}`}
             onClick={() => setActiveTab('home')}
             type="button"
@@ -464,7 +500,7 @@ const PatientDashboard = ({ username, onLogout }) => {
             <Home className="sidebar-icon" />
             <span>Home</span>
           </button>
-          <button 
+          <button
             className={`sidebar-item ${activeTab === 'appointments' ? 'active' : ''}`}
             onClick={() => setActiveTab('appointments')}
             type="button"
@@ -488,15 +524,8 @@ const PatientDashboard = ({ username, onLogout }) => {
             <Activity className="sidebar-icon" />
             <span>Scan Results</span>
           </button>
+
           <button
-            className={`sidebar-item ${activeTab === 'platform' ? 'active' : ''}`}
-            onClick={() => setActiveTab('platform')}
-            type="button"
-          >
-            <Layers className="sidebar-icon" />
-            <span>CT Scan Platform</span>
-          </button>
-          <button 
             className={`sidebar-item ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
             type="button"
@@ -504,7 +533,7 @@ const PatientDashboard = ({ username, onLogout }) => {
             <Clock className="sidebar-icon" />
             <span>Recent Uploads</span>
           </button>
-          <button 
+          <button
             className={`sidebar-item ${activeTab === 'contact' ? 'active' : ''}`}
             onClick={() => setActiveTab('contact')}
             type="button"
@@ -513,7 +542,7 @@ const PatientDashboard = ({ username, onLogout }) => {
             <span>Contact Doctor</span>
           </button>
         </div>
-        
+
         <div className="sidebar-footer">
           <button className="logout-button" onClick={onLogout} type="button">
             <LogOut className="sidebar-icon" />
@@ -521,7 +550,7 @@ const PatientDashboard = ({ username, onLogout }) => {
           </button>
         </div>
       </aside>
-      
+
       {/* Main Content */}
       <main className="dashboard-content-wrapper">
         {/* Main Content Header */}
@@ -531,20 +560,20 @@ const PatientDashboard = ({ username, onLogout }) => {
             {activeTab === 'appointments' && 'Book a Doctor'}
             {activeTab === 'scans' && 'CT Scan Analysis'}
             {activeTab === 'results' && 'Scan Results'}
-            {activeTab === 'platform' && 'CT Scan Platform'}
+
             {activeTab === 'history' && 'Recent Uploads'}
             {activeTab === 'contact' && 'Contact Your Doctor'}
           </h1>
-          
+
           <div className="header-actions">
             <div className="search-container">
               <Search size={18} className="search-icon" />
               <input type="text" placeholder="Search..." className="search-input" />
             </div>
-            
+
             {activeTab === 'scans' && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="action-button"
                 onClick={() => setShowUploadModal(true)}
               >
@@ -553,7 +582,7 @@ const PatientDashboard = ({ username, onLogout }) => {
             )}
           </div>
         </div>
-        
+
         {/* Main Content Body */}
         <div className="content-body">
           {activeTab === 'home' && (
@@ -574,7 +603,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                 <div className="latest-result-preview">
                   <h3>Latest Scan Result</h3>
                   <div className="result-quick-info">
-                    <p><strong>Status:</strong> {currentScanResult.results.detected ? 'Detection Found' : 'No Detection'}</p>
+                    <p><strong>Status:</strong> {currentScanResult.results.detected ? 'Indication Found' : 'No Indication'}</p>
                     <p><strong>Risk Level:</strong> <span className={`risk-${currentScanResult.results.riskLevel || 'none'}`}>{(currentScanResult.results.riskLevel || 'none').toUpperCase()}</span></p>
                     <button onClick={() => setActiveTab('results')} type="button" className="view-full-results">
                       View Full Results
@@ -639,8 +668,8 @@ const PatientDashboard = ({ username, onLogout }) => {
                     ) : (
                       <p className="no-data-message">No upcoming appointments scheduled.</p>
                     )}
-                    <button 
-                      className="action-button" 
+                    <button
+                      className="action-button"
                       onClick={() => setActiveTab('appointments')}
                       type="button"
                     >
@@ -648,7 +677,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="dashboard-card">
                   <h3>Recent Uploads</h3>
                   <div className="card-content">
@@ -670,7 +699,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                     ) : (
                       <p className="no-data-message">No recent uploads.</p>
                     )}
-                    <button 
+                    <button
                       className="action-button"
                       onClick={() => setShowUploadModal(true)}
                       type="button"
@@ -682,7 +711,7 @@ const PatientDashboard = ({ username, onLogout }) => {
               </div>
             </>
           )}
-          
+
           {activeTab === 'results' && (
             <>
               {currentScanResult ? (
@@ -700,16 +729,14 @@ const PatientDashboard = ({ username, onLogout }) => {
             </>
           )}
 
-          {activeTab === 'platform' && (
-            <SimplifiedPatientPlatform/>
-          )}
-          
+
+
           {activeTab === 'appointments' && (
             <>
               <div className="page-subheader">
                 <p>Schedule an appointment with one of our specialists.</p>
               </div>
-              
+
               <div className="doctors-grid">
                 {(availableDoctors || []).map(doctor => (
                   <div className="doctor-card" key={doctor.id}>
@@ -731,7 +758,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="dashboard-card full-width">
                 <h3>Your Scheduled Appointments</h3>
                 <div className="appointments-list">
@@ -776,7 +803,7 @@ const PatientDashboard = ({ username, onLogout }) => {
               </div>
             </>
           )}
-          
+
           {activeTab === 'scans' && (
             <>
               <div className="page-subheader">
@@ -811,8 +838,8 @@ const PatientDashboard = ({ username, onLogout }) => {
                             <span className="probability-label">Analysis Status</span>
                             <span className="probability-value" style={{
                               color: currentScanResult.results.riskLevel === 'high' ? '#ef4444' :
-                                     currentScanResult.results.riskLevel === 'medium' ? '#f97316' :
-                                     currentScanResult.results.riskLevel === 'low' ? '#eab308' : '#22c55e'
+                                currentScanResult.results.riskLevel === 'medium' ? '#f97316' :
+                                  currentScanResult.results.riskLevel === 'low' ? '#eab308' : '#22c55e'
                             }}>
                               Complete
                             </span>
@@ -820,15 +847,15 @@ const PatientDashboard = ({ username, onLogout }) => {
                           <div className="risk-badge-container">
                             <span className={`risk-badge-large risk-${currentScanResult.results.riskLevel}`}>
                               {currentScanResult.results.riskLevel === 'none' ? 'REVIEWED' :
-                               currentScanResult.results.riskLevel === 'low' ? 'ATTENTION SUGGESTED' :
-                               currentScanResult.results.riskLevel === 'medium' ? 'REVIEW RECOMMENDED' :
-                               'PROFESSIONAL REVIEW NEEDED'}
+                                currentScanResult.results.riskLevel === 'low' ? 'ATTENTION SUGGESTED' :
+                                  currentScanResult.results.riskLevel === 'medium' ? 'REVIEW RECOMMENDED' :
+                                    'PROFESSIONAL REVIEW NEEDED'}
                             </span>
                           </div>
                         </div>
 
                         <div className="section-divider">
-                          <h5 className="section-subtitle">Detected Abnormalities</h5>
+                          <h5 className="section-subtitle">Indicated Abnormalities</h5>
                           {currentScanResult.results.detections && currentScanResult.results.detections.length > 0 ? (
                             <ul className="abnormality-list">
                               {currentScanResult.results.detections.map((detection, idx) => (
@@ -836,17 +863,17 @@ const PatientDashboard = ({ username, onLogout }) => {
                                   <ChevronRight className="abnormality-icon icon-sm" />
                                   <div className="abnormality-content">
                                     <p className="abnormality-title">
-                                      {detection.class.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} detected
+                                      {detection.class.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} indicated
                                     </p>
                                     <p className="abnormality-details">
-                                      {detection.characteristics ? `Size: ${detection.characteristics.size_mm}mm, ${detection.characteristics.shape}` : 'Detected by AI analysis'}
+                                      {detection.characteristics ? `Size: ${detection.characteristics.size_mm}mm, ${detection.characteristics.shape}` : 'Indicated by AI analysis'}
                                     </p>
                                   </div>
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="no-detections">No abnormalities detected in this scan.</p>
+                            <p className="no-detections">No abnormalities indicated in this scan.</p>
                           )}
                         </div>
 
@@ -941,7 +968,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                   </button>
                 </div>
               )}
-              
+
               <div className="patient-info">
                 <h4 className="patient-title">Your Information</h4>
                 <div className="patient-card">
@@ -970,7 +997,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="dashboard-card full-width">
                 <h3>Upload Guidelines</h3>
                 <div className="guidelines-content">
@@ -1002,7 +1029,7 @@ const PatientDashboard = ({ username, onLogout }) => {
               </div>
             </>
           )}
-          
+
           {activeTab === 'history' && (
             <>
               <div className="page-subheader">
@@ -1033,7 +1060,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                                   {(scan.results?.riskLevel || 'none').toUpperCase()}
                                 </span>
                               </td>
-                              <td>{scan.results?.detected ? 'Areas Detected' : 'None Detected'}</td>
+                              <td>{scan.results?.detected ? 'Areas of Interest' : 'None Indicated'}</td>
                               <td>
                                 <span className="comment-count-badge">
                                   {commentCount > 0 ? `${commentCount} comment${commentCount > 1 ? 's' : ''}` : 'No comments'}
@@ -1137,13 +1164,13 @@ const PatientDashboard = ({ username, onLogout }) => {
               )}
             </>
           )}
-          
+
           {activeTab === 'contact' && (
             <>
               <div className="page-subheader">
                 <p>Reach out to your healthcare providers with any questions or concerns.</p>
               </div>
-              
+
               <div className="contact-grid">
                 <div className="contact-card">
                   <div className="contact-header">
@@ -1180,7 +1207,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="message-card">
                   <div className="message-header">
                     <h3>Send a Message</h3>
@@ -1246,7 +1273,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                   </form>
                 </div>
               </div>
-              
+
               <div className="dashboard-card full-width">
                 <h3>Message History</h3>
                 <div className="message-history">
@@ -1286,7 +1313,7 @@ const PatientDashboard = ({ username, onLogout }) => {
           )}
         </div>
       </main>
-      
+
       {/* Appointment Booking Modal */}
       {showAppointmentModal && selectedDoctor && (
         <div className="modal-overlay">
@@ -1392,7 +1419,7 @@ const PatientDashboard = ({ username, onLogout }) => {
                 <X className="icon-sm" />
               </button>
             </div>
-            
+
             {uploadSuccess ? (
               <div className="success-message">
                 <CheckCircle className="success-icon" />
@@ -1409,17 +1436,17 @@ const PatientDashboard = ({ username, onLogout }) => {
                   <input type="file" id="file-upload" className="hidden-input" />
                   <p className="upload-formats">Accepted formats: DICOM, NIFTI, JPEG, PNG</p>
                 </div>
-                
+
                 <div className="form-group">
                   <label htmlFor="scan-name">Scan Name</label>
                   <input type="text" id="scan-name" name="scan-name" placeholder="e.g., Chest CT Scan - May 2025" />
                 </div>
-                
+
                 <div className="form-group">
                   <label htmlFor="scan-notes">Notes (Optional)</label>
                   <textarea id="scan-notes" name="scan-notes" rows="3" placeholder="Add any notes about this scan..."></textarea>
                 </div>
-                
+
                 <div className="modal-actions">
                   <button type="button" className="cancel-button" onClick={() => setShowUploadModal(false)}>Cancel</button>
                   <button type="submit" className="upload-button">Upload Scan</button>

@@ -60,3 +60,7 @@ yarn-error.log*
 
 # Claude Code
 .claude/
+
+# Generated Data
+uploads/
+scans_metadata.json

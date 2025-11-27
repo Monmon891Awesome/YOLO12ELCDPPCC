@@ -139,7 +139,7 @@ const ScanUpload = ({ onScanComplete, onError }) => {
     <div className="scan-upload-container">
       <div className="upload-header">
         <h2>Upload CT Scan for Analysis</h2>
-        <p>Upload your CT scan image for AI-powered lung cancer detection using YOLOv12</p>
+        <p>Upload your CT scan image for AI-powered lung cancer indication using YOLOv12</p>
       </div>
 
       {/* Upload Status Messages */}
@@ -240,7 +240,7 @@ const ScanUpload = ({ onScanComplete, onError }) => {
             <div className="result-item">
               <span className="label">Status:</span>
               <span className={`value ${scanResult.results.detected ? 'detected' : 'clear'}`}>
-                {scanResult.results.detected ? 'Detection Found' : 'No Detection'}
+                {scanResult.results.detected ? 'Indication Found' : 'No Indication'}
               </span>
             </div>
             <div className="result-item">

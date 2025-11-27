@@ -1,0 +1,9 @@
+{
+  "patientId": "pat_643ced39",
+  "doctorId": "doc_72752dd21fe4",
+  "doctorName": "Dr. Test Smith",
+  "date": "2025-11-25",
+  "time": "14:30:00",
+  "type": "follow-up",
+  "notes": "Follow-up appointment to discuss recent CT scan results"
+}

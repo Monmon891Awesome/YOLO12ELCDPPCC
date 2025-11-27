@@ -26,6 +26,7 @@ const STORAGE_KEYS = {
   APPOINTMENTS: 'pneumai_appointments',
   MESSAGES: 'pneumai_messages',
   SCAN_COMMENTS: 'pneumai_scan_comments',
+  REPORTS: 'pneumai_reports',
 
   // System
   SETTINGS: 'pneumai_settings',
@@ -126,11 +127,54 @@ const DEFAULT_ADMIN = {
 };
 
 /**
+ * Test Patient Account
+ */
+const TEST_PATIENT = {
+  id: 'PAT-TEST-001',
+  fullName: 'Test Patient',
+  firstName: 'Test',
+  lastName: 'Patient',
+  email: 'tpent@patient.com',
+  password: '12345678',
+  phone: '(555) 000-0000',
+  age: 30,
+  gender: 'Other',
+  image: '/assets/default-avatar.png',
+  status: 'Active',
+  lastVisit: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  userType: 'patient'
+};
+
+/**
  * Initialize database with default data
  */
 export function initializeDatabase() {
   try {
     const appData = getFromStorage(STORAGE_KEYS.APP_DATA);
+
+    // Always ensure test patient exists (even if initialized)
+    const currentUsers = getFromStorage(STORAGE_KEYS.USERS) || [];
+    if (!currentUsers.some(u => u.email === TEST_PATIENT.email)) {
+      currentUsers.push({
+        username: TEST_PATIENT.fullName,
+        email: TEST_PATIENT.email,
+        password: TEST_PATIENT.password,
+        userType: 'patient',
+        registeredAt: TEST_PATIENT.createdAt,
+        image: TEST_PATIENT.image
+      });
+      saveToStorage(STORAGE_KEYS.USERS, currentUsers);
+      console.log('✅ Test patient added to USERS');
+    }
+
+    const currentPatients = getFromStorage(STORAGE_KEYS.PATIENTS) || [];
+    if (!currentPatients.some(p => p.email === TEST_PATIENT.email)) {
+      currentPatients.push(TEST_PATIENT);
+      saveToStorage(STORAGE_KEYS.PATIENTS, currentPatients);
+      console.log('✅ Test patient added to PATIENTS');
+    }
+
     if (appData && appData.initialized) {
       console.log('✓ Database already initialized');
       return true;
@@ -392,6 +436,34 @@ export function createPatient(patientData) {
   }
 }
 
+/**
+ * Delete patient by ID
+ */
+export function deletePatient(patientId) {
+  try {
+    const patients = getAllPatients();
+    const patientToDelete = patients.find(p => p.id === patientId);
+
+    if (!patientToDelete) {
+      throw new Error('Patient not found');
+    }
+
+    // Remove from patients list
+    const updatedPatients = patients.filter(p => p.id !== patientId);
+    saveToStorage(STORAGE_KEYS.PATIENTS, updatedPatients);
+
+    // Remove from users list
+    const users = getFromStorage(STORAGE_KEYS.USERS) || [];
+    const updatedUsers = users.filter(u => u.email !== patientToDelete.email);
+    saveToStorage(STORAGE_KEYS.USERS, updatedUsers);
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting patient:', error);
+    throw error;
+  }
+}
+
 
 /**
  * Get patient by ID
@@ -407,7 +479,13 @@ export function getPatientById(patientId) {
 export function getCurrentPatientProfile() {
   const session = getCurrentSession();
   if (session && session.userType === 'patient') {
-    // Check if profile exists in PATIENT_PROFILES
+    // Try to find in PATIENTS list first
+    const patients = getAllPatients();
+    const patient = patients.find(p => p.email === session.email || p.id === session.id);
+
+    if (patient) return patient;
+
+    // Check if profile exists in PATIENT_PROFILES (legacy/fallback)
     const profile = getFromStorage(STORAGE_KEYS.PATIENT_PROFILES);
     if (profile) return profile;
 
@@ -416,7 +494,7 @@ export function getCurrentPatientProfile() {
     const sessionProfile = {
       ...defaultProfile,
       name: session.username || defaultProfile.name,
-      id: `PAT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+      id: session.id || `PAT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
     };
 
     // Save it so it persists
@@ -712,6 +790,124 @@ export function getCurrentSession() {
 }
 
 /**
+ * Register a new user
+ */
+export function registerUser(userData) {
+  try {
+    const users = getFromStorage(STORAGE_KEYS.USERS) || [];
+
+    // Check if email already exists in USERS
+    if (users.some(u => u.email === userData.email)) {
+      throw new Error('Email already registered');
+    }
+
+    const newUser = {
+      ...userData,
+      id: userData.id || `USER-${Date.now()}`,
+      registeredAt: new Date().toISOString(),
+      image: userData.image || '/assets/default-avatar.png'
+    };
+
+    // Add to USERS (master list)
+    users.push(newUser);
+    saveToStorage(STORAGE_KEYS.USERS, users);
+
+    // If doctor, add to DOCTORS list
+    if (userData.userType === 'doctor') {
+      const doctors = getFromStorage(STORAGE_KEYS.DOCTORS) || [];
+      doctors.push({
+        id: newUser.id,
+        name: userData.fullName || userData.username,
+        email: userData.email,
+        password: userData.password,
+        specialty: userData.specialty || 'General',
+        phone: userData.phone || '',
+        image: newUser.image,
+        availability: 'Available Mon-Fri 9AM-5PM',
+        yearsOfExperience: 0,
+        bio: 'New specialist.',
+        userType: 'doctor',
+        createdAt: newUser.registeredAt
+      });
+      saveToStorage(STORAGE_KEYS.DOCTORS, doctors);
+    }
+
+    // If patient, add to PATIENTS list
+    if (userData.userType === 'patient') {
+      const patients = getFromStorage(STORAGE_KEYS.PATIENTS) || [];
+      // Check if already in patients list (by email)
+      if (!patients.some(p => p.email === userData.email)) {
+        patients.push({
+          id: newUser.id,
+          fullName: userData.fullName || userData.username,
+          firstName: userData.firstName || userData.username.split(' ')[0],
+          lastName: userData.lastName || userData.username.split(' ').slice(1).join(' '),
+          email: userData.email,
+          password: userData.password,
+          phone: userData.phone || '',
+          age: userData.age || 0,
+          gender: userData.gender || 'Not specified',
+          image: newUser.image,
+          status: 'Active',
+          lastVisit: new Date().toISOString(),
+          createdAt: newUser.registeredAt
+        });
+        saveToStorage(STORAGE_KEYS.PATIENTS, patients);
+      }
+    }
+
+    return newUser;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update user profile image
+ */
+export function updateUserProfileImage(userId, imageUrl) {
+  try {
+    // Update in USERS
+    const users = getFromStorage(STORAGE_KEYS.USERS) || [];
+    const userIndex = users.findIndex(u => u.id === userId || u.email === userId);
+
+    if (userIndex !== -1) {
+      users[userIndex].image = imageUrl;
+      saveToStorage(STORAGE_KEYS.USERS, users);
+
+      // Update session if it's the current user
+      const session = getFromStorage(STORAGE_KEYS.SESSION);
+      if (session && (session.id === userId || session.email === userId)) {
+        session.image = imageUrl;
+        saveToStorage(STORAGE_KEYS.SESSION, session);
+      }
+    }
+
+    // Update in DOCTORS if applicable
+    const doctors = getFromStorage(STORAGE_KEYS.DOCTORS) || [];
+    const docIndex = doctors.findIndex(d => d.id === userId || d.email === userId);
+    if (docIndex !== -1) {
+      doctors[docIndex].image = imageUrl;
+      saveToStorage(STORAGE_KEYS.DOCTORS, doctors);
+    }
+
+    // Update in PATIENTS if applicable
+    const patients = getFromStorage(STORAGE_KEYS.PATIENTS) || [];
+    const patIndex = patients.findIndex(p => p.id === userId || p.email === userId);
+    if (patIndex !== -1) {
+      patients[patIndex].image = imageUrl;
+      saveToStorage(STORAGE_KEYS.PATIENTS, patients);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error updating profile image:', error);
+    return false;
+  }
+}
+
+/**
  * Authenticate user by email, password, and userType
  * @param {string} email - User email
  * @param {string} password - User password
@@ -721,7 +917,31 @@ export function getCurrentSession() {
 export function authenticateUser(email, password, userType) {
   try {
     if (userType === 'patient') {
-      const patients = getAllPatients();
+      // Auto-create demo patient if missing and credentials match
+      if (email === TEST_PATIENT.email && password === TEST_PATIENT.password) {
+        const currentPatients = getAllPatients();
+        if (!currentPatients.some(p => p.email === email)) {
+          console.log('Creating demo patient on login...');
+          currentPatients.push(TEST_PATIENT);
+          saveToStorage(STORAGE_KEYS.PATIENTS, currentPatients);
+
+          // Also add to USERS
+          const users = getFromStorage(STORAGE_KEYS.USERS) || [];
+          if (!users.some(u => u.email === email)) {
+            users.push({
+              username: TEST_PATIENT.fullName,
+              email: TEST_PATIENT.email,
+              password: TEST_PATIENT.password,
+              userType: 'patient',
+              registeredAt: TEST_PATIENT.createdAt,
+              image: TEST_PATIENT.image
+            });
+            saveToStorage(STORAGE_KEYS.USERS, users);
+          }
+        }
+      }
+
+      const patients = getAllPatients(); // Refresh list
       const patient = patients.find(p => p.email === email && p.password === password);
       if (patient) {
         return {
@@ -730,7 +950,8 @@ export function authenticateUser(email, password, userType) {
           firstName: patient.firstName,
           lastName: patient.lastName,
           userType: 'patient',
-          fullName: patient.fullName
+          fullName: patient.fullName,
+          image: patient.image
         };
       }
     } else if (userType === 'doctor') {
@@ -743,7 +964,8 @@ export function authenticateUser(email, password, userType) {
           firstName: doctor.name.split(' ')[0],
           lastName: doctor.name.split(' ').slice(1).join(' '),
           userType: 'doctor',
-          fullName: doctor.name
+          fullName: doctor.name,
+          image: doctor.image
         };
       }
     }
@@ -773,8 +995,6 @@ export function clearSession() {
   removeFromStorage(STORAGE_KEYS.SESSION);
   return true;
 }
-
-// ============ STATISTICS ============
 
 /**
  * Get dashboard statistics
@@ -1119,6 +1339,118 @@ export function getUnreadCommentsForUser(userId, userRole) {
     console.error('Error getting unread comments:', error);
     return 0;
   }
+}
+
+// ============ REPORTS MANAGEMENT ============
+
+/**
+ * Get all reports
+ */
+export function getReports() {
+  return getFromStorage(STORAGE_KEYS.REPORTS) || [];
+}
+
+/**
+ * Save a new report
+ */
+export function saveReport(reportData) {
+  try {
+    const reports = getReports();
+    const newReport = {
+      ...reportData,
+      id: `RPT-${Date.now()}`,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    reports.push(newReport);
+    saveToStorage(STORAGE_KEYS.REPORTS, reports);
+    console.log('✅ Report saved:', newReport.id);
+    return newReport;
+  } catch (error) {
+    console.error('Error saving report:', error);
+    return null;
+  }
+}
+
+// ============ APPOINTMENT HELPERS ============
+
+/**
+ * Get appointments by doctor ID
+ */
+export function getAppointmentsByDoctor(doctorId) {
+  const appointments = getAppointments();
+  return appointments.filter(a => a.doctorId === doctorId);
+}
+
+// ============ NOTIFICATIONS ============
+
+/**
+ * Get notifications for a user
+ */
+export function getNotifications(userId, userRole) {
+  const notifications = [];
+  const now = new Date();
+
+  // 1. New Scans (for Doctors)
+  if (userRole === 'doctor') {
+    const scans = getAllScans();
+    // Scans uploaded in the last 24 hours
+    const recentScans = scans.filter(s => {
+      const uploadTime = new Date(s.uploadTime);
+      return (now - uploadTime) < 24 * 60 * 60 * 1000 && s.status === 'pending';
+    });
+    recentScans.forEach(s => {
+      notifications.push({
+        id: `notif-scan-${s.scanId}`,
+        type: 'scan',
+        title: 'New Scan Uploaded',
+        message: `Patient uploaded a new scan`,
+        time: s.uploadTime,
+        read: false,
+        link: 'scans'
+      });
+    });
+  }
+
+  // 2. New Messages
+  const messages = getMessagesByUser(userId);
+  const unreadMessages = messages.filter(m => !m.read && m.receiverId === userId);
+  unreadMessages.forEach(m => {
+    notifications.push({
+      id: `notif-msg-${m.id}`,
+      type: 'message',
+      title: 'New Message',
+      message: `From ${m.senderName}`,
+      time: m.timestamp,
+      read: false,
+      link: 'messages'
+    });
+  });
+
+  // 3. Upcoming Appointments
+  const appointments = userRole === 'doctor'
+    ? getAppointmentsByDoctor(userId)
+    : getAppointmentsByPatient(userId);
+
+  const upcoming = appointments.filter(a => {
+    const apptDate = new Date(a.date);
+    return apptDate > now && (apptDate - now) < 24 * 60 * 60 * 1000; // Within 24 hours
+  });
+
+  upcoming.forEach(a => {
+    notifications.push({
+      id: `notif-appt-${a.id}`,
+      type: 'appointment',
+      title: 'Upcoming Appointment',
+      message: `${a.type} with ${userRole === 'doctor' ? a.patientName : a.doctorName}`,
+      time: a.date,
+      read: false,
+      link: 'appointments'
+    });
+  });
+
+  // Sort by time (newest first)
+  return notifications.sort((a, b) => new Date(b.time) - new Date(a.time));
 }
 
 // Export storage keys for reference

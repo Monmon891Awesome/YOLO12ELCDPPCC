@@ -21,7 +21,10 @@ export const WebSocketProvider = ({ children }) => {
 
   const connect = useCallback(() => {
     try {
-      const ws = new WebSocket('wss://inspirational-ileana-nonsaleable.ngrok-free.dev/ws/scans');
+      // Use environment variable for WebSocket URL, fallback to localhost
+      const baseUrl = process.env.REACT_APP_YOLO_API_URL || 'http://localhost:8000';
+      const wsUrl = baseUrl.replace(/^http/, 'ws') + '/ws/scans';
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log('✓ WebSocket connected');

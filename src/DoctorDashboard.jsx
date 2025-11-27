@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, Layers, Settings, LogOut, Bell, Search, Home, Activity, Calendar, MessageCircle } from 'lucide-react';
+import { Users, FileText, Layers, Settings, LogOut, Bell, Search, Home, Activity, Calendar, MessageCircle, Mail, Send, User as UserIcon, HelpCircle } from 'lucide-react';
 import './Dashboard.css';
 import ScanCommentThread from './components/ScanCommentThread';
 import ScanCommentForm from './components/ScanCommentForm';
@@ -9,7 +9,15 @@ import {
   fetchAllScans,
   getDashboardStats,
   formatDate,
-  getScanCommentCount
+  getScanCommentCount,
+  getMessages,
+  getMessagesByUser,
+  sendMessage,
+  getCurrentSession,
+  saveReport,
+  getAppointmentsByDoctor,
+  getNotifications,
+  updateAppointment
 } from './utils/unifiedDataManager';
 
 const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
@@ -17,16 +25,30 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
   const [patients, setPatients] = useState([]);
   const [scans, setScans] = useState([]);
   const [stats, setStats] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [selectedScan, setSelectedScan] = useState(null);
   const [replyToComment, setReplyToComment] = useState(null);
   const [commentRefresh, setCommentRefresh] = useState(0);
   const [imageBlobUrls, setImageBlobUrls] = useState({});
 
-  // Current user object for comments
+  // Report Form State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    subject: '',
+    description: '',
+    priority: 'medium'
+  });
+
+  // Current user object for comments and messages
+  const session = getCurrentSession();
   const currentUser = {
-    id: 'doctor_' + username,
-    name: 'Dr. ' + username,
-    role: 'doctor'
+    id: session?.id || 'doctor_' + username, // Fallback for demo
+    name: session ? (session.username || `Dr. ${username}`) : 'Dr. ' + username,
+    role: 'doctor',
+    image: session?.image || '/assets/ai-doc1.jpg'
   };
 
   // Load data on mount
@@ -66,11 +88,22 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
     console.log('🔍 DoctorDashboard - Loading data:');
     console.log('📊 Total scans:', allScans.length);
     console.log('👥 Total patients:', allPatients.length);
-    console.log('🖼️ First scan:', allScans[0]);
 
     setPatients(allPatients);
     setScans(allScans);
     setStats(getDashboardStats());
+
+    // Load user-specific data
+    if (currentUser.id) {
+      const userMessages = getMessagesByUser(currentUser.id);
+      setMessages(userMessages);
+
+      const userAppointments = getAppointmentsByDoctor(currentUser.id);
+      setAppointments(userAppointments);
+
+      const userNotifications = getNotifications(currentUser.id, 'doctor');
+      setNotifications(userNotifications);
+    }
 
     // Auto-select first scan if none selected
     if (!selectedScan && allScans.length > 0) {
@@ -105,7 +138,7 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
     return {
       ...scan,
       patientName: patient?.fullName || scan.patientId,
-      result: scan.results?.detected ? 'Areas Detected' : 'Reviewed'
+      result: scan.results?.detected ? 'Areas of Interest' : 'Reviewed'
     };
   });
 
@@ -119,9 +152,94 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
             <span className="doctor-badge">Doctor</span>
           </div>
           <div className="admin-actions">
-            <button className="topbar-button">
-              <Bell className="topbar-icon" />
-            </button>
+            <div className="notification-wrapper" style={{ position: 'relative' }}>
+              <button
+                className="topbar-button"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="topbar-icon" />
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="notification-badge" style={{
+                    position: 'absolute',
+                    top: '-5px',
+                    right: '-5px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--bg-card)'
+                  }}>
+                    {notifications.filter(n => !n.read).length}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="notification-dropdown" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  width: '320px',
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                  zIndex: 50,
+                  marginTop: '0.5rem',
+                  overflow: 'hidden'
+                }}>
+                  <div className="notification-header" style={{
+                    padding: '1rem',
+                    borderBottom: '1px solid var(--border-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0 }}>Notifications</h3>
+                    <button
+                      onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                      style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div className="notification-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {notifications.length > 0 ? (
+                      notifications.map(notif => (
+                        <div key={notif.id} className={`notification-item ${!notif.read ? 'unread' : ''}`} style={{
+                          padding: '0.75rem 1rem',
+                          borderBottom: '1px solid var(--border-color)',
+                          backgroundColor: !notif.read ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
+                          cursor: 'pointer'
+                        }} onClick={() => {
+                          setActiveTab(notif.link);
+                          setShowNotifications(false);
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                            <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{notif.title}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                              {new Date(notif.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0 }}>{notif.message}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                        <Bell size={24} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                        <p style={{ margin: 0 }}>No notifications</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="user-info">
               <div className="user-avatar doctor">
                 <span className="user-initials">{username.charAt(0).toUpperCase()}</span>
@@ -170,11 +288,11 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 <span>Messages</span>
               </button>
               <button
-                className={`sidebar-item ${activeTab === 'reports' ? 'active' : ''}`}
-                onClick={() => setActiveTab('reports')}
+                className={`sidebar-item ${activeTab === 'help' ? 'active' : ''}`}
+                onClick={() => setActiveTab('help')}
               >
-                <FileText className="sidebar-icon" />
-                <span>Reports</span>
+                <HelpCircle className="sidebar-icon" />
+                <span>Help</span>
               </button>
               <button
                 className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
@@ -274,7 +392,7 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                               <td>{formatDate(scan.uploadTime)}</td>
                               <td>
                                 <span className={`status-badge ${scan.result === 'Reviewed' ? 'success' :
-                                  scan.result === 'Areas Detected' ? 'warning' : 'info'
+                                  scan.result === 'Areas of Interest' ? 'warning' : 'info'
                                   }`}>
                                   {scan.result}
                                 </span>
@@ -377,8 +495,8 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                               </td>
                               <td>
                                 <div className="action-buttons">
-                                  <button className="table-action-button">View</button>
-                                  <button className="table-action-button">Edit</button>
+
+
                                 </div>
                               </td>
                             </tr>
@@ -469,7 +587,7 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                               <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Patient</th>
                               <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Upload Date</th>
                               <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Risk Level</th>
-                              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Detection</th>
+                              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Indication</th>
                               <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Comments</th>
                               <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Actions</th>
                             </tr>
@@ -528,7 +646,7 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                         fontSize: '0.875rem',
                                         fontWeight: '500'
                                       }}>
-                                        ⚠️ Areas Detected
+                                        ⚠️ Areas of Interest
                                       </span>
                                     ) : (
                                       <span style={{
@@ -687,8 +805,8 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                 src={
                                   imageBlobUrls[selectedScan.annotatedImageUrl] ||
                                   imageBlobUrls[selectedScan.imageUrl] ||
-                                  selectedScan.annotatedImageUrl ||
-                                  selectedScan.imageUrl
+                                  (selectedScan.annotatedImageUrl?.startsWith('http') ? selectedScan.annotatedImageUrl : (selectedScan.annotatedImageUrl ? `http://localhost:8000${selectedScan.annotatedImageUrl}` : null)) ||
+                                  (selectedScan.imageUrl?.startsWith('http') ? selectedScan.imageUrl : `http://localhost:8000${selectedScan.imageUrl}`)
                                 }
                                 alt="CT Scan"
                                 style={{
@@ -718,7 +836,7 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                               color: '#6b7280',
                               textAlign: 'center'
                             }}>
-                              ℹ️ Image shows AI-detected areas highlighted in red
+                              ℹ️ Image shows AI-indicated areas highlighted in red
                             </p>
                           )}
                         </div>
@@ -754,7 +872,7 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.5px'
                               }}>
-                                Detection Status
+                                Analysis Status
                               </span>
                               <p style={{
                                 margin: '0.75rem 0 0 0',
@@ -762,7 +880,7 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                 fontWeight: 'bold',
                                 color: selectedScan.results?.detected ? '#78350f' : '#064e3b'
                               }}>
-                                {selectedScan.results?.detected ? '⚠️ Areas Detected' : '✓ No Issues Detected'}
+                                {selectedScan.results?.detected ? '⚠️ Areas of Interest' : '✓ No Abnormalities Indicated'}
                               </p>
                             </div>
 
@@ -826,6 +944,285 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   )}
                 </div>
               </>
+            )}
+
+            {activeTab === 'messages' && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Patient Messages</h3>
+                  <span className="header-badge">{messages.length} Total</span>
+                </div>
+                <div className="messages-list" style={{ padding: '1.5rem' }}>
+                  {messages.length > 0 ? (
+                    messages.map(message => (
+                      <div key={message.id} className="message-item" style={{
+                        padding: '1rem',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        marginBottom: '1rem',
+                        background: message.read ? 'white' : '#f0f9ff'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              background: '#10b981',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'white',
+                              fontSize: '0.875rem'
+                            }}>
+                              {message.senderName ? message.senderName.charAt(0).toUpperCase() : 'P'}
+                            </div>
+                            <div>
+                              <span style={{ fontWeight: '600', color: '#111827', display: 'block' }}>
+                                {message.senderName || 'Patient'}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                {formatDate(message.timestamp)}
+                              </span>
+                            </div>
+                          </div>
+                          {!message.read && (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              color: '#0369a1',
+                              background: '#e0f2fe',
+                              padding: '0.125rem 0.5rem',
+                              borderRadius: '9999px'
+                            }}>
+                              New
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ margin: '0 0 0.5rem 0', color: '#374151', whiteSpace: 'pre-wrap' }}>
+                          {message.content}
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => {
+                              const reply = prompt('Enter your reply:');
+                              if (reply) {
+                                sendMessage({
+                                  senderId: currentUser.id,
+                                  senderName: currentUser.name,
+                                  senderRole: 'doctor',
+                                  receiverId: message.senderId,
+                                  receiverName: message.senderName,
+                                  content: `RE: ${message.content.split('\n')[0]}\n\n${reply}`
+                                });
+                                alert('Reply sent!');
+                                // Refresh messages
+                                setMessages(getMessagesByUser(currentUser.id));
+                              }
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.375rem 0.75rem',
+                              background: 'white',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              color: '#374151',
+                              fontSize: '0.875rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Send size={14} /> Reply
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+                      <Mail size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                      <p>No messages yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'appointments' && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Appointments</h3>
+                  <span className="header-badge">{appointments.length} Total</span>
+                </div>
+                <div className="appointments-list" style={{ padding: '1.5rem' }}>
+                  {appointments.length > 0 ? (
+                    appointments.map(apt => (
+                      <div key={apt.id} className="appointment-item" style={{
+                        padding: '1rem',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <h4 style={{ margin: '0 0 0.25rem 0' }}>{apt.patientName}</h4>
+                          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>
+                            {apt.type} • {formatDate(apt.date)} at {apt.time}
+                          </p>
+                          {apt.notes && (
+                            <p style={{ margin: '0.5rem 0 0 0', color: '#374151', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                              "{apt.notes}"
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {apt.status === 'scheduled' && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm('Confirm this appointment?')) {
+                                    updateAppointment(apt.id, { status: 'confirmed' });
+                                    setAppointments(getAppointmentsByDoctor(currentUser.id));
+                                  }
+                                }}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  backgroundColor: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm('Cancel this appointment?')) {
+                                    updateAppointment(apt.id, { status: 'cancelled' });
+                                    setAppointments(getAppointmentsByDoctor(currentUser.id));
+                                  }
+                                }}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  backgroundColor: '#ef4444',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                          <span className={`status-badge ${apt.status}`} style={{
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            backgroundColor: apt.status === 'confirmed' ? '#d1fae5' : apt.status === 'cancelled' ? '#fee2e2' : '#e0f2fe',
+                            color: apt.status === 'confirmed' ? '#065f46' : apt.status === 'cancelled' ? '#991b1b' : '#075985',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}>
+                            {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+                      <Calendar size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                      <p>No appointments scheduled</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'help' && (
+              <div className="dashboard-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                <div className="card-header">
+                  <h3>Help & Support</h3>
+                </div>
+                <div style={{ padding: '2rem' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <HelpCircle size={48} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+                    <p style={{ fontSize: '1.1rem', color: '#374151' }}>
+                      Please contact the administrators for help by submitting a report.
+                    </p>
+                  </div>
+
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    saveReport({
+                      ...reportForm,
+                      userId: currentUser.id,
+                      userName: currentUser.name,
+                      userRole: 'doctor'
+                    });
+                    alert('Report submitted successfully to Admin Dashboard.');
+                    setReportForm({ subject: '', description: '', priority: 'medium' });
+                  }}>
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Subject</label>
+                      <input
+                        type="text"
+                        required
+                        value={reportForm.subject}
+                        onChange={e => setReportForm({ ...reportForm, subject: e.target.value })}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }}
+                        placeholder="Brief summary of the issue"
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Priority</label>
+                      <select
+                        value={reportForm.priority}
+                        onChange={e => setReportForm({ ...reportForm, priority: e.target.value })}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Description</label>
+                      <textarea
+                        required
+                        rows={5}
+                        value={reportForm.description}
+                        onChange={e => setReportForm({ ...reportForm, description: e.target.value })}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }}
+                        placeholder="Describe your issue or request in detail..."
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        backgroundColor: 'var(--primary)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Submit Report
+                    </button>
+                  </form>
+                </div>
+              </div>
             )}
 
             {activeTab === 'settings' && (

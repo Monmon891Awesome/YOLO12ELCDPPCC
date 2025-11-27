@@ -136,7 +136,7 @@ const ScanResults = ({ scanData }) => {
         <div className="assessment-content">
           <h3>Overall Assessment</h3>
           <p className="assessment-status">
-            {detected ? 'Potential abnormality detected' : 'No significant abnormalities detected'}
+            {detected ? 'Potential abnormality indicated' : 'No significant abnormalities indicated'}
           </p>
           <div className="assessment-details">
             <div className="detail-item">
@@ -203,49 +203,24 @@ const ScanResults = ({ scanData }) => {
       {/* Detections List */}
       {detected && detections && detections.length > 0 && (
         <div className="detections-section">
-          <h3>Detected Findings ({detections.length})</h3>
+          <h3>Indicated Findings ({detections.length})</h3>
           <div className="detections-list">
             {detections.map((detection, index) => (
               <div key={index} className="detection-card">
                 <div className="detection-header">
                   <span className="detection-class">{detection.class}</span>
                   <span className="detection-status">
-                    Detected
+                    Indicated
                   </span>
                 </div>
-                {detection.characteristics && (
-                  <div className="detection-characteristics">
-                    {detection.characteristics.size_mm && (
-                      <div className="characteristic">
-                        <span className="char-label">Size:</span>
-                        <span className="char-value">{detection.characteristics.size_mm} mm</span>
-                      </div>
-                    )}
-                    {detection.characteristics.shape && (
-                      <div className="characteristic">
-                        <span className="char-label">Shape:</span>
-                        <span className="char-value">{detection.characteristics.shape}</span>
-                      </div>
-                    )}
-                    {detection.characteristics.density && (
-                      <div className="characteristic">
-                        <span className="char-label">Density:</span>
-                        <span className="char-value">{detection.characteristics.density}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {detection.boundingBox && (
-                  <div className="detection-location">
-                    <span className="location-label">Location:</span>
-                    <span className="location-value">
-                      X: {Math.round(detection.boundingBox.x)},
-                      Y: {Math.round(detection.boundingBox.y)},
-                      W: {Math.round(detection.boundingBox.width)},
-                      H: {Math.round(detection.boundingBox.height)}
-                    </span>
-                  </div>
-                )}
+                <div className="detection-summary" style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: '#374151', fontWeight: 500 }}>
+                    {detection.class} Pattern Indicated.
+                  </p>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#6b7280' }}>
+                    With confidence level of: {detection.confidence ? (detection.confidence * 100).toFixed(1) : (confidence * 100).toFixed(1)}%
+                  </p>
+                </div>
               </div>
             ))}
           </div>

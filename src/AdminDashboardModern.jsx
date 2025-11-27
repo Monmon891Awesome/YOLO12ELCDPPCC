@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, FileText, Layers, Settings, HelpCircle, LogOut, Bell, Search, Home, UserPlus, Stethoscope, Download, Upload, Database, Activity, TrendingUp, CheckCircle, AlertCircle, Shield, MessageSquare, BarChart3, Clock, Target, Moon, Sun, ArrowRight, X, Calendar, Send, Mail } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
+import './ModernDashboard.css';
 import {
   getAllDoctors,
   getAllPatients,
@@ -10,14 +11,17 @@ import {
   getDashboardStats,
   downloadDataBackup,
   importData,
-  initializeDatabase
-} from './utils/localDataManager';
+  initializeDatabase,
+  getAllScans,
+  fetchAllScans,
+  getReports
+} from './utils/unifiedDataManager';
 import {
   getAppointments,
   getMessages,
   sendMessage,
   formatDate
-} from './utils/patientDataManager';
+} from './utils/unifiedDataManager';
 import { patientAPI } from './services/apiService';
 
 const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
@@ -27,10 +31,57 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
   const [editingPatient, setEditingPatient] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [scans, setScans] = useState([]);
   const [stats, setStats] = useState({});
   const [appointments, setAppointments] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showDocsModal, setShowDocsModal] = useState(false);
+  const [selectedScan, setSelectedScan] = useState(null);
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [imageBlobUrls, setImageBlobUrls] = useState({});
   const { darkMode, toggleDarkMode } = useTheme();
+
+  // Helper function to fetch images with ngrok header and convert to blob URL
+  const fetchImageAsBlob = async (imageUrl) => {
+    if (!imageUrl || imageBlobUrls[imageUrl]) return imageBlobUrls[imageUrl];
+
+    try {
+      const response = await fetch(imageUrl, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch image');
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      setImageBlobUrls(prev => ({ ...prev, [imageUrl]: blobUrl }));
+      return blobUrl;
+    } catch (error) {
+      console.error('Error fetching image:', error);
+      return null;
+    }
+  };
+
+  // Fetch image blobs when scan is selected
+  useEffect(() => {
+    if (selectedScan) {
+      const annotatedUrl = selectedScan.annotatedImageUrl || selectedScan.results?.annotatedImageUrl;
+      const imageUrl = selectedScan.imageUrl || selectedScan.results?.imageUrl;
+
+      if (annotatedUrl) {
+        fetchImageAsBlob(annotatedUrl);
+      }
+      if (imageUrl) {
+        fetchImageAsBlob(imageUrl);
+      }
+    }
+  }, [selectedScan]);
 
   const [newDoctor, setNewDoctor] = useState({
     name: '',
@@ -59,6 +110,18 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
     setStats(getDashboardStats());
     setAppointments(getAppointments());
     setMessages(getMessages());
+    setReports(getReports());
+
+    // Load scans
+    const localScans = getAllScans();
+    setScans(localScans);
+
+    // Fetch latest scans from API
+    fetchAllScans().then(latestScans => {
+      if (latestScans && latestScans.length > 0) {
+        setScans(latestScans);
+      }
+    }).catch(err => console.error('Error fetching scans:', err));
 
     // Load patients from API
     try {
@@ -207,8 +270,8 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
 
       // Reload data
       await loadData();
+
       setShowPatientModal(false);
-      setEditingPatient(null);
       setNewPatient({
         name: '',
         email: '',
@@ -217,9 +280,16 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
         gender: '',
         medicalHistory: ''
       });
+      setEditingPatient(null);
     } catch (error) {
-      alert(`Error saving patient: ${error.message}`);
+      console.error('Error saving patient:', error);
+      alert('Failed to save patient. Please try again.');
     }
+  };
+
+  const handleViewScan = (scan) => {
+    setSelectedScan(scan);
+    setShowScanModal(true);
   };
 
   const handleDeletePatient = async (patientId) => {
@@ -310,11 +380,10 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                    activeTab === item.id
-                      ? 'bg-primary-500 text-white shadow-md'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700'
-                  }`}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeTab === item.id
+                    ? 'bg-primary-500 text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
@@ -344,8 +413,8 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <Target className="w-8 h-8 opacity-80" />
                   <span className="text-sm bg-white/20 px-3 py-1 rounded-full">+2.3%</span>
                 </div>
-                <p className="text-sm opacity-90 mb-1">AI Detection Accuracy</p>
-                <p className="text-4xl font-bold">96.8%</p>
+                <p className="text-sm opacity-90 mb-1">AI Indication Accuracy</p>
+                <p className="text-4xl font-bold">86%</p>
               </div>
 
               <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-soft-lg">
@@ -423,7 +492,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-secondary-600">87%</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Early Detection</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Indication</p>
                   </div>
                   <div className="text-center">
                     <p className="text-3xl font-bold text-secondary-600">42%</p>
@@ -449,7 +518,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Uptime</span>
-                    <span className="text-sm font-semibold text-success-600">99.7%</span>
+                    <span className="text-sm font-semibold text-success-600">94%</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">API Response</span>
@@ -531,11 +600,10 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{patient.age}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{patient.lastVisit}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                              patient.status === 'Urgent' ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400' :
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${patient.status === 'Urgent' ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400' :
                               patient.status === 'Follow-up Required' ? 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400' :
-                              'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400'
-                            }`}>
+                                'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400'
+                              }`}>
                               {patient.status}
                             </span>
                           </td>
@@ -660,11 +728,10 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{appointment.type}</td>
                             <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">{appointment.notes || 'N/A'}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                appointment.status === 'scheduled' ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400' :
+                              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${appointment.status === 'scheduled' ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400' :
                                 appointment.status === 'completed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' :
-                                'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400'
-                              }`}>
+                                  'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400'
+                                }`}>
                                 {appointment.status || 'scheduled'}
                               </span>
                             </td>
@@ -754,6 +821,145 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
           </div>
         )}
 
+        {/* Scans Tab */}
+        {activeTab === 'scans' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">CT Scans</h2>
+              <span className="px-4 py-2 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg font-medium">
+                {scans.length} Total
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-dark-700 border-b border-gray-200 dark:border-dark-600">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scan ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Patient</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Result</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Confidence</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-dark-600">
+                    {scans.length > 0 ? (
+                      scans.map((scan) => (
+                        <tr key={scan.scanId || scan.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{scan.scanId || scan.id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{formatDate(scan.uploadTime || scan.uploadDate || scan.timestamp)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            {patients.find(p => p.id === scan.patientId)?.fullName || scan.patientName || scan.patientId || 'Unknown'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            {scan.results?.detected ? 'Abnormality Detected' : 'Normal'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            {scan.results?.confidence ? `${(scan.results.confidence * 100).toFixed(1)}%` : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${scan.status === 'analyzed' ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400' :
+                              'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400'
+                              }`}>
+                              {scan.status || 'Processed'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => handleViewScan(scan)}
+                              className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                          <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No scans found</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reports Tab */}
+        {activeTab === 'reports' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">System Reports</h2>
+              <span className="px-4 py-2 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg font-medium">
+                {reports.length} Total
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-100 dark:border-dark-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-dark-700 border-b border-gray-200 dark:border-dark-600">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Report ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Submitted By</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subject</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Priority</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-dark-600">
+                    {reports.length > 0 ? (
+                      reports.map((report) => (
+                        <tr key={report.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{report.id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            {report.submittedBy} ({report.userType})
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{report.subject}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${report.priority === 'high' ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400' :
+                              report.priority === 'medium' ? 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400' :
+                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              }`}>
+                              {report.priority}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            {formatDate(report.timestamp)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${report.status === 'resolved' ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400' :
+                              report.status === 'in-progress' ? 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400' :
+                                'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                              }`}>
+                              {report.status || 'pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                          <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No reports submitted yet</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Settings Tab - Functional */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
@@ -771,14 +977,12 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                     </div>
                     <button
                       onClick={toggleDarkMode}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        darkMode ? 'bg-primary-500' : 'bg-gray-300 dark:bg-dark-600'
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${darkMode ? 'bg-primary-500' : 'bg-gray-300 dark:bg-dark-600'
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          darkMode ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </div>
@@ -820,12 +1024,16 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
         )}
 
         {/* Help Tab */}
+        {/* Help Tab */}
         {activeTab === 'help' && (
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Help & Documentation</h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-soft border border-gray-100 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer">
+              <div
+                className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-soft border border-gray-100 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer"
+                onClick={() => setShowGuideModal(true)}
+              >
                 <HelpCircle className="w-10 h-10 text-primary-500 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Getting Started</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Learn how to use the PneumAI admin dashboard</p>
@@ -834,7 +1042,10 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-soft border border-gray-100 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer">
+              <div
+                className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-soft border border-gray-100 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer"
+                onClick={() => setShowSupportModal(true)}
+              >
                 <MessageSquare className="w-10 h-10 text-primary-500 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Contact Support</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Get help from our support team</p>
@@ -843,7 +1054,10 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-soft border border-gray-100 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer">
+              <div
+                className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-soft border border-gray-100 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer"
+                onClick={() => setShowDocsModal(true)}
+              >
                 <FileText className="w-10 h-10 text-primary-500 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Documentation</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Browse comprehensive documentation</p>
@@ -852,6 +1066,65 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 </button>
               </div>
             </div>
+
+            {/* Guide Modal */}
+            {showGuideModal && (
+              <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowGuideModal(false)}>
+                <div className="bg-white dark:bg-dark-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Getting Started Guide</h3>
+                    <button onClick={() => setShowGuideModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-6 h-6" /></button>
+                  </div>
+                  <div className="prose dark:prose-invert text-gray-600 dark:text-gray-300">
+                    <p className="mb-4">Welcome to the PneumAI Admin Dashboard. Here you can manage doctors, patients, appointments, and system settings.</p>
+                    <h4 className="font-bold mb-2 text-gray-900 dark:text-white">Key Features:</h4>
+                    <ul className="list-disc pl-5 space-y-2">
+                      <li><strong>Dashboard:</strong> Overview of system statistics.</li>
+                      <li><strong>Doctors:</strong> Manage doctor accounts and credentials.</li>
+                      <li><strong>Patients:</strong> View patient records and scan history.</li>
+                      <li><strong>Appointments:</strong> Schedule and manage appointments.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Support Modal */}
+            {showSupportModal && (
+              <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowSupportModal(false)}>
+                <div className="bg-white dark:bg-dark-800 rounded-2xl max-w-lg w-full shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Contact Support</h3>
+                    <button onClick={() => setShowSupportModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-6 h-6" /></button>
+                  </div>
+                  <p className="mb-4 text-gray-600 dark:text-gray-300">For technical support, please contact the IT department or email support@pneumai.com.</p>
+                  <div className="bg-gray-50 dark:bg-dark-700 p-4 rounded-lg">
+                    <p className="font-mono text-sm text-gray-800 dark:text-gray-200">Support Hotline: +1 (555) 123-4567</p>
+                    <p className="font-mono text-sm text-gray-800 dark:text-gray-200">Email: help@pneumai.com</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Docs Modal */}
+            {showDocsModal && (
+              <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowDocsModal(false)}>
+                <div className="bg-white dark:bg-dark-800 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">System Documentation</h3>
+                    <button onClick={() => setShowDocsModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-6 h-6" /></button>
+                  </div>
+                  <div className="prose dark:prose-invert text-gray-600 dark:text-gray-300">
+                    <h4 className="font-bold mb-2 text-gray-900 dark:text-white">System Architecture</h4>
+                    <p className="mb-4">PneumAI uses a microservices architecture with a React frontend and Python/FastAPI backend.</p>
+                    <h4 className="font-bold mb-2 text-gray-900 dark:text-white">Data Security</h4>
+                    <p className="mb-4">All patient data is encrypted at rest and in transit. Access is strictly role-based.</p>
+                    <h4 className="font-bold mb-2 text-gray-900 dark:text-white">AI Model</h4>
+                    <p>The system utilizes YOLOv12n for object detection in CT scans, trained on the LUNA16 dataset.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -885,7 +1158,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="text"
                     value={newDoctor.name}
-                    onChange={(e) => setNewDoctor({...newDoctor, name: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                     placeholder="Dr. John Smith"
@@ -895,7 +1168,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role *</label>
                   <select
                     value={newDoctor.specialty}
-                    onChange={(e) => setNewDoctor({...newDoctor, specialty: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                   >
@@ -910,7 +1183,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="email"
                     value={newDoctor.email}
-                    onChange={(e) => setNewDoctor({...newDoctor, email: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                     placeholder="doctor@pneumai.com"
@@ -921,7 +1194,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="tel"
                     value={newDoctor.phone}
-                    onChange={(e) => setNewDoctor({...newDoctor, phone: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, phone: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                     placeholder="+63 (2) 1234-5678"
                   />
@@ -931,7 +1204,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="password"
                     value={newDoctor.password}
-                    onChange={(e) => setNewDoctor({...newDoctor, password: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, password: e.target.value })}
                     required
                     minLength="8"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
@@ -942,7 +1215,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Image</label>
                   <select
                     value={newDoctor.image}
-                    onChange={(e) => setNewDoctor({...newDoctor, image: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, image: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                   >
                     <option value="">Select Image</option>
@@ -996,7 +1269,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="text"
                     value={newPatient.name}
-                    onChange={(e) => setNewPatient({...newPatient, name: e.target.value})}
+                    onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                     placeholder="John Doe"
@@ -1007,7 +1280,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="email"
                     value={newPatient.email}
-                    onChange={(e) => setNewPatient({...newPatient, email: e.target.value})}
+                    onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                     placeholder="patient@email.com"
@@ -1018,7 +1291,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="tel"
                     value={newPatient.phone}
-                    onChange={(e) => setNewPatient({...newPatient, phone: e.target.value})}
+                    onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                     placeholder="(555) 123-4567"
@@ -1029,7 +1302,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <input
                     type="date"
                     value={newPatient.dateOfBirth}
-                    onChange={(e) => setNewPatient({...newPatient, dateOfBirth: e.target.value})}
+                    onChange={(e) => setNewPatient({ ...newPatient, dateOfBirth: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                   />
@@ -1038,7 +1311,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gender *</label>
                   <select
                     value={newPatient.gender}
-                    onChange={(e) => setNewPatient({...newPatient, gender: e.target.value})}
+                    onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                   >
@@ -1052,7 +1325,7 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Medical History</label>
                   <textarea
                     value={newPatient.medicalHistory}
-                    onChange={(e) => setNewPatient({...newPatient, medicalHistory: e.target.value})}
+                    onChange={(e) => setNewPatient({ ...newPatient, medicalHistory: e.target.value })}
                     rows="4"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
                     placeholder="Enter relevant medical history..."
@@ -1076,6 +1349,105 @@ const AdminDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Scan View Modal */}
+      {showScanModal && selectedScan && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowScanModal(false)}>
+          <div className="bg-white dark:bg-dark-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-dark-700">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Scan Details</h3>
+              <button onClick={() => setShowScanModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-6 h-6" /></button>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Scan Image</h4>
+                  <div className="bg-gray-100 dark:bg-dark-900 rounded-lg overflow-hidden flex items-center justify-center min-h-[300px]">
+                    {(selectedScan.annotatedImageUrl || selectedScan.results?.annotatedImageUrl || selectedScan.imageUrl || selectedScan.results?.imageUrl) ? (
+                      <img
+                        src={
+                          imageBlobUrls[selectedScan.annotatedImageUrl] ||
+                          imageBlobUrls[selectedScan.results?.annotatedImageUrl] ||
+                          imageBlobUrls[selectedScan.imageUrl] ||
+                          imageBlobUrls[selectedScan.results?.imageUrl] ||
+                          selectedScan.annotatedImageUrl ||
+                          selectedScan.results?.annotatedImageUrl ||
+                          selectedScan.imageUrl ||
+                          selectedScan.results?.imageUrl
+                        }
+                        alt={`Scan ${selectedScan.id}`}
+                        className="max-w-full max-h-[500px] object-contain"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://via.placeholder.com/400x400?text=Image+Not+Found';
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center text-gray-500 dark:text-gray-400 p-8">
+                        <Layers className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p>No image available for this scan</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Analysis Results</h4>
+                    <div className={`p-4 rounded-lg border ${selectedScan.results?.detected ? 'bg-red-50 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 'bg-green-50 border-green-100 dark:bg-green-900/20 dark:border-green-900/30'}`}>
+                      <div className="flex items-center mb-2">
+                        {selectedScan.results?.detected ? (
+                          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+                        ) : (
+                          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
+                        )}
+                        <span className={`font-medium ${selectedScan.results?.detected ? 'text-red-800 dark:text-red-300' : 'text-green-800 dark:text-green-300'}`}>
+                          {selectedScan.results?.detected ? 'Abnormality Detected' : 'Normal Scan'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Confidence: <strong>{selectedScan.results?.confidence ? `${(selectedScan.results.confidence * 100).toFixed(1)}%` : 'N/A'}</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Metadata</h4>
+                    <div className="bg-gray-50 dark:bg-dark-700/50 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Scan ID:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{selectedScan.scanId || selectedScan.id}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Date:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{formatDate(selectedScan.uploadTime || selectedScan.uploadDate || selectedScan.timestamp)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Patient ID:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{selectedScan.patientId || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Status:</span>
+                        <span className="font-medium text-gray-900 dark:text-white capitalize">{selectedScan.status || 'Processed'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 dark:border-dark-700 flex justify-end">
+              <button
+                onClick={() => setShowScanModal(false)}
+                className="px-4 py-2 bg-gray-100 dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

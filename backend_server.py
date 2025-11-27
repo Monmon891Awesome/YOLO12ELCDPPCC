@@ -47,6 +47,10 @@ app.add_middleware(
 model = None
 MODEL_LOADED = False
 
+# Upload directory for storing scan images
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 # WebSocket Connection Manager for real-time updates
 class ConnectionManager:
@@ -419,8 +423,28 @@ def create_annotated_image(image: np.ndarray, detections: List[dict]) -> bytes:
 
 # Store uploaded images and results
 scan_images: Dict[str, dict] = {}
-# Store scan metadata for listing
-scans_metadata: List[dict] = []
+# Store scan metadata for listing with persistence
+METADATA_FILE = "scans_metadata.json"
+
+def load_metadata():
+    """Load scan metadata from JSON file"""
+    if os.path.exists(METADATA_FILE):
+        try:
+            with open(METADATA_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading metadata: {e}")
+    return []
+
+def save_metadata(metadata):
+    """Save scan metadata to JSON file"""
+    try:
+        with open(METADATA_FILE, "w") as f:
+            json.dump(metadata, f, indent=2)
+    except Exception as e:
+        print(f"Error saving metadata: {e}")
+
+scans_metadata: List[dict] = load_metadata()
 
 @app.on_event("startup")
 async def startup_event():
@@ -460,6 +484,22 @@ async def analyze_scan(scan: UploadFile = File(...)):
 
         # Generate scan ID and store results
         scan_id = generate_scan_id()
+        
+        # Save images to disk
+        scan_dir = os.path.join(UPLOAD_DIR, scan_id)
+        os.makedirs(scan_dir, exist_ok=True)
+        
+        # Save original image
+        original_path = os.path.join(scan_dir, "original.jpg")
+        cv2.imwrite(original_path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        
+        # Generate and save annotated image
+        annotated_bytes = create_annotated_image(image, results["detections"])
+        annotated_path = os.path.join(scan_dir, "annotated.jpg")
+        with open(annotated_path, "wb") as f:
+            f.write(annotated_bytes)
+        
+        # Store in memory for immediate access
         scan_images[scan_id] = {
             "original": image,
             "detections": results["detections"]
@@ -487,6 +527,7 @@ async def analyze_scan(scan: UploadFile = File(...)):
         
         # Store metadata
         scans_metadata.append(response_data)
+        save_metadata(scans_metadata)
 
         # Broadcast scan completion to all connected clients
         await manager.broadcast({
@@ -506,28 +547,37 @@ async def analyze_scan(scan: UploadFile = File(...)):
 @app.get("/api/v1/scan/{scan_id}/image")
 async def get_scan_image(scan_id: str):
     """Get original scan image"""
-    if scan_id not in scan_images:
-        raise HTTPException(status_code=404, detail="Scan not found")
+    # Try to serve from disk first
+    image_path = os.path.join(UPLOAD_DIR, scan_id, "original.jpg")
+    if os.path.exists(image_path):
+        return FileResponse(image_path)
         
-    image = scan_images[scan_id]["original"]
-    success, encoded_image = cv2.imencode('.jpg', image)
-    
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to encode image")
+    # Fallback to memory
+    if scan_id in scan_images:
+        image = scan_images[scan_id]["original"]
+        success, encoded_image = cv2.imencode('.jpg', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to encode image")
+        return Response(content=encoded_image.tobytes(), media_type="image/jpeg")
         
-    return Response(content=encoded_image.tobytes(), media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="Scan not found")
 
 @app.get("/api/v1/scan/{scan_id}/annotated")
 async def get_annotated_image(scan_id: str):
     """Get annotated scan image"""
-    if scan_id not in scan_images:
-        raise HTTPException(status_code=404, detail="Scan not found")
+    # Try to serve from disk first
+    image_path = os.path.join(UPLOAD_DIR, scan_id, "annotated.jpg")
+    if os.path.exists(image_path):
+        return FileResponse(image_path)
 
-    image = scan_images[scan_id]["original"]
-    detections = scan_images[scan_id]["detections"]
-
-    annotated_image = create_annotated_image(image, detections)
-    return Response(content=annotated_image, media_type="image/jpeg")
+    # Fallback to memory
+    if scan_id in scan_images:
+        image = scan_images[scan_id]["original"]
+        detections = scan_images[scan_id]["detections"]
+        annotated_image = create_annotated_image(image, detections)
+        return Response(content=annotated_image, media_type="image/jpeg")
+        
+    raise HTTPException(status_code=404, detail="Scan not found")
 
 
 @app.get("/api/v1/scans")
@@ -675,7 +725,85 @@ async def delete_comment(comment_id: int):
 
 
 
+# ============= MESSAGING SYSTEM =============
+
+# Simple in-memory message store (in a real app, use a database)
+messages_db = []
+message_id_counter = 1
+
+class Message(BaseModel):
+    senderId: str
+    receiverId: str
+    content: str
+    senderName: Optional[str] = "Unknown"
+    timestamp: Optional[str] = None
+
+@app.get("/api/v1/messages/user/{user_id}")
+async def get_user_messages(user_id: str):
+    """Get messages for a specific user"""
+    user_messages = [
+        m for m in messages_db 
+        if m["receiverId"] == user_id or m["senderId"] == user_id
+    ]
+    return user_messages
+
+@app.get("/api/v1/messages/conversation/{user1_id}/{user2_id}")
+async def get_conversation(user1_id: str, user2_id: str):
+    """Get conversation between two users"""
+    conversation = [
+        m for m in messages_db 
+        if (m["senderId"] == user1_id and m["receiverId"] == user2_id) or 
+           (m["senderId"] == user2_id and m["receiverId"] == user1_id)
+    ]
+    # Sort by timestamp
+    conversation.sort(key=lambda x: x["timestamp"] or "")
+    return conversation
+
+@app.post("/api/v1/messages")
+async def send_message(message: Message):
+    """Send a new message"""
+    global message_id_counter
+    
+    new_message = message.dict()
+    new_message["id"] = message_id_counter
+    new_message["timestamp"] = datetime.now().isoformat()
+    new_message["read"] = False
+    
+    messages_db.append(new_message)
+    message_id_counter += 1
+    
+    # Broadcast to connected clients via WebSocket
+    await manager.broadcast({
+        "type": "new_message",
+        "data": new_message
+    })
+    
+    return new_message
+
+@app.put("/api/v1/messages/{message_id}/read")
+async def mark_message_read(message_id: int):
+    """Mark a message as read"""
+    for msg in messages_db:
+        if msg["id"] == message_id:
+            msg["read"] = True
+            return {"success": True}
+    raise HTTPException(status_code=404, detail="Message not found")
+
+@app.delete("/api/v1/messages/{message_id}")
+async def delete_message(message_id: int):
+    """Delete a message"""
+    global messages_db
+    initial_len = len(messages_db)
+    messages_db = [m for m in messages_db if m["id"] != message_id]
+    
+    if len(messages_db) < initial_len:
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="Message not found")
+
 # ============= STATIC FILES (FRONTEND) =============
+
+# Mount the uploads directory to serve uploaded files
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Mount the build directory to serve static files
 # Check if build directory exists
