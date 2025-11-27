@@ -927,51 +927,6 @@ a {
   .hero-buttons {
     flex-direction: row;
   }
-
-  .features-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .dashboard-content {
-    flex-direction: row;
-  }
-
-  .dashboard-sidebar {
-    width: 16rem;
-    flex-shrink: 0;
-    /* Prevent sidebar from shrinking */
-    border-right: 1px solid var(--gray-200);
-    /* Add border for separation */
-  }
-
-  .scan-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .support-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Mobile optimizations for dashboard sidebar */
-@media (max-width: 767px) {
-  .sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-  }
-
-  .sidebar-nav-button {
-    white-space: nowrap;
-    width: auto;
-    flex-shrink: 0;
-  }
-}
-
-/* Team Section */
-.team-section {
-  padding: 5rem 0;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
 .team-grid {
