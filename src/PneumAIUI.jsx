@@ -13,6 +13,7 @@ import AdminDashboardModern from './AdminDashboardModern'; // Import Admin Dashb
 // ...existing code...
 import DoctorDashboard from './DoctorDashboard'; // Import Doctor Dashboard (Classic)
 import DoctorDashboardModern from './DoctorDashboardModern'; // Import Doctor Dashboard (Modern)
+import DebugPanel from './components/DebugPanel'; // Import Debug Panel
 import { initializeDatabase } from './utils/unifiedDataManager'; // Import database initialization
 
 const PneumAIUI = () => {
@@ -24,18 +25,19 @@ const PneumAIUI = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userType, setUserType] = useState(null); // 'patient' or 'admin'
   const [username, setUsername] = useState('');
-  const [dashboardStyle, setDashboardStyle] = useState('modern'); // Options: 'classic', 'modern'
+  const [dashboardStyle, setDashboardStyle] = useState('classic'); // Options: 'classic', 'modern'
 
   // Check if user was previously logged in and initialize database
   useEffect(() => {
     // Initialize database with demo data
     initializeDatabase();
 
-    const savedSession = JSON.parse(localStorage.getItem('pneumAISession') || 'null');
+    // Use the unified session key
+    const savedSession = JSON.parse(localStorage.getItem('pneumai_session') || 'null');
     if (savedSession) {
       setIsLoggedIn(true);
       setUserType(savedSession.userType);
-      setUsername(savedSession.username);
+      setUsername(savedSession.username || savedSession.fullName);
     }
 
     // Load dashboard preference
@@ -58,9 +60,17 @@ const PneumAIUI = () => {
     setUsername(user);
     setShowLogin(false);
 
-    // Save session to localStorage
-    const session = { userType: type, username: user };
-    localStorage.setItem('pneumAISession', JSON.stringify(session));
+    // The Login component already called createSession() with full user data
+    // We just need to ensure it's persisted (it already is)
+    // Don't overwrite the session - just verify it exists
+    const existingSession = JSON.parse(localStorage.getItem('pneumai_session') || 'null');
+
+    if (!existingSession) {
+      // Fallback: create minimal session if somehow missing
+      console.warn('⚠️ Session not found after login, creating fallback');
+      const session = { userType: type, username: user };
+      localStorage.setItem('pneumai_session', JSON.stringify(session));
+    }
   };
 
   // Handle logout
@@ -69,7 +79,9 @@ const PneumAIUI = () => {
     setUserType(null);
     setUsername('');
 
-    // Remove session from localStorage
+    // Remove session from localStorage (use unified key)
+    localStorage.removeItem('pneumai_session');
+    // Also remove old key for backwards compatibility
     localStorage.removeItem('pneumAISession');
   };
 
@@ -108,14 +120,7 @@ const PneumAIUI = () => {
   // If user is logged in, show the appropriate dashboard
   if (isLoggedIn) {
     if (userType === 'patient') {
-      // Choose patient dashboard style
-      switch (dashboardStyle) {
-        case 'modern':
-          return <PatientDashboard username={username} onLogout={handleLogout} />;
-        case 'classic':
-        default:
-          return <PatientDashboard username={username} onLogout={handleLogout} />;
-      }
+      return <PatientDashboard username={username} onLogout={handleLogout} />;
     } else if (userType === 'admin') {
       // Choose admin dashboard style
       switch (dashboardStyle) {
@@ -361,6 +366,9 @@ const PneumAIUI = () => {
           onBackToLogin={handleBackToLogin}
         />
       )}
+
+      {/* Debug Panel - Toggle with Ctrl+Shift+D */}
+      <DebugPanel />
     </div>
   );
 };

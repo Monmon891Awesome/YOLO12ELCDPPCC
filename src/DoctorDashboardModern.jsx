@@ -16,6 +16,7 @@ import {
   getNotifications,
   updateAppointment,
   getCurrentSession,
+  sendMessage,
   updateUserProfileImage
 } from './utils/unifiedDataManager';
 import { messageAPI } from './services/apiService';
@@ -92,14 +93,13 @@ const DoctorDashboardModern = ({ username, onLogout, onToggleDashboardStyle }) =
     const myAppointments = getAppointmentsByDoctor('DOC-001');
     const myNotifications = getNotifications('doctor');
 
-    // Fetch messages from API
-    try {
-      const myMessages = await messageAPI.getByUser('DOC-001');
-      setMessages(myMessages);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      setMessages([]);
-    }
+    // Fetch messages from localStorage (unified with patient dashboard)
+    // Fetch messages from localStorage (unified with patient dashboard)
+    const { getMessagesByUser } = await import('./utils/unifiedDataManager');
+    const session = getCurrentSession();
+    const doctorId = session?.id || 'DOC-001'; // Fallback to DOC-001 if strict session tracking fails
+    const myMessages = await getMessagesByUser(doctorId);
+    if (myMessages) setMessages(myMessages);
 
     console.log('🔍 DoctorDashboardModern - Loading data:');
     console.log('📊 Total scans:', allScans.length);
@@ -115,7 +115,7 @@ const DoctorDashboardModern = ({ username, onLogout, onToggleDashboardStyle }) =
       setSelectedScan(allScans[0]);
     }
 
-    const session = getCurrentSession();
+
     if (session) {
       setCurrentUserProfile(session);
     }
@@ -124,17 +124,23 @@ const DoctorDashboardModern = ({ username, onLogout, onToggleDashboardStyle }) =
   const handleSendMessage = async (e) => {
     e.preventDefault();
     try {
-      await messageAPI.send({
+      // Use unifiedDataManager instead of API to ensure messages appear in patient dashboard
+      const messageData = {
         senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderRole: 'doctor',
         receiverId: newMessage.receiverId,
-        content: newMessage.content,
-        senderName: currentUser.name
-      });
+        receiverName: patients.find(p => p.id === newMessage.receiverId)?.fullName || 'Patient',
+        content: newMessage.content
+      };
+
+      const { sendMessage: sendMessageToStorage } = await import('./utils/unifiedDataManager');
+      await sendMessageToStorage(messageData);
 
       alert('Message sent successfully!');
       setShowMessageModal(false);
       setNewMessage({ receiverId: '', content: '' });
-      loadData(); // Refresh messages
+      await loadData(); // Refresh messages
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');

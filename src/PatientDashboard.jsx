@@ -124,7 +124,9 @@ const PatientDashboard = ({ username, onLogout }) => {
       setAppointments(getAppointmentsByPatient(profile.id));
 
       // Load messages
-      setMessages(getMessagesByUser(profile.id));
+      getMessagesByUser(profile.id).then(msgs => {
+        if (msgs) setMessages(msgs);
+      });
     }
   }, []);
 
@@ -142,6 +144,22 @@ const PatientDashboard = ({ username, onLogout }) => {
 
     // Refresh every 5 seconds
     const interval = setInterval(refreshDoctors, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Periodically refresh messages to show new messages from doctors
+  useEffect(() => {
+    const refreshMessages = async () => {
+      const profile = getCurrentPatientProfile();
+      if (profile) {
+        const updatedMessages = await getMessagesByUser(profile.id);
+        if (updatedMessages) setMessages(updatedMessages);
+      }
+    };
+
+    // Refresh every 5 seconds
+    const interval = setInterval(refreshMessages, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -372,17 +390,19 @@ const PatientDashboard = ({ username, onLogout }) => {
 
       const messageData = {
         senderId: profile.id,
-        senderName: profile.name,
+        senderName: profile.fullName || profile.name || 'Unknown Patient',
         senderRole: 'patient',
         receiverId: recipientDoctor.id,
         receiverName: recipientDoctor.name,
         content: `Subject: ${messageForm.subject}\n\n${messageForm.message}`
       };
 
-      sendMessage(messageData);
+      await sendMessage(messageData);
 
       // Refresh messages list
-      setMessages(getMessagesByUser(profile.id));
+      // Refresh messages list
+      const updatedMessages = await getMessagesByUser(profile.id);
+      if (updatedMessages) setMessages(updatedMessages);
 
       // Reset form
       setMessageForm({
@@ -1291,7 +1311,9 @@ const PatientDashboard = ({ username, onLogout }) => {
                             <span className="message-date">{formatDate(msg.timestamp)}</span>
                           </div>
                           <p className="message-recipient">
-                            {isFromPatient ? `To: ${msg.receiverName}` : `From: ${msg.senderName}`}
+                            {isFromPatient
+                              ? `To: ${msg.receiverName || 'Unknown Recipient'}`
+                              : `From: ${msg.senderName || 'Unknown Sender'}`}
                           </p>
                           <p className="message-preview">
                             {preview.length > 100 ? preview.substring(0, 100) + '...' : preview}

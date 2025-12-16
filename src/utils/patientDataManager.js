@@ -286,7 +286,7 @@ const getDefaultMessages = () => [
     recipient: 'Dr. Sarah Miller',
     recipientId: 'doc_1',
     message: "I've been experiencing some side effects from the new medication...",
-    sentAt: '2025-04-30T10:30:00Z',
+    sentAt: '2025-12-10T10:30:00Z',
     status: 'sent',
     replied: true
   },
@@ -296,7 +296,7 @@ const getDefaultMessages = () => [
     recipient: 'Dr. James Rodriguez',
     recipientId: 'doc_2',
     message: 'I wanted to confirm my follow-up appointment scheduled for...',
-    sentAt: '2025-04-22T14:15:00Z',
+    sentAt: '2025-12-08T14:15:00Z',
     status: 'sent',
     replied: true
   }

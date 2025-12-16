@@ -95,8 +95,8 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
 
     // Load user-specific data
     if (currentUser.id) {
-      const userMessages = getMessagesByUser(currentUser.id);
-      setMessages(userMessages);
+      const userMessages = await getMessagesByUser(currentUser.id);
+      if (userMessages) setMessages(userMessages);
 
       const userAppointments = getAppointmentsByDoctor(currentUser.id);
       setAppointments(userAppointments);
@@ -1004,10 +1004,10 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               const reply = prompt('Enter your reply:');
                               if (reply) {
-                                sendMessage({
+                                await sendMessage({
                                   senderId: currentUser.id,
                                   senderName: currentUser.name,
                                   senderRole: 'doctor',
@@ -1017,7 +1017,8 @@ const DoctorDashboard = ({ username, onLogout, onToggleDashboardStyle }) => {
                                 });
                                 alert('Reply sent!');
                                 // Refresh messages
-                                setMessages(getMessagesByUser(currentUser.id));
+                                const updatedMessages = await getMessagesByUser(currentUser.id);
+                                if (updatedMessages) setMessages(updatedMessages);
                               }
                             }}
                             style={{

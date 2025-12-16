@@ -131,39 +131,17 @@ The application integrates with a YOLOv12 backend API for lung cancer detection 
 
 ### Setting Up the Backend
 
-#### Option 1: Quick Start (Mock Backend)
-
-Use the provided example backend for development:
-
+1. Install dependencies:
 ```bash
-# Navigate to docs folder
-cd docs
-
-# Install dependencies
-pip install fastapi uvicorn python-multipart opencv-python pillow numpy
-
-# Run the mock server
-uvicorn backend_example:app --host 0.0.0.0 --port 8000 --reload
+pip install -r requirements.txt
 ```
 
-#### Option 2: Production Backend with YOLOv12
-
-1. Train or obtain a YOLOv12 model for lung cancer detection
-2. Install dependencies:
+2. Run the backend server:
 ```bash
-pip install fastapi uvicorn ultralytics opencv-python pillow numpy
+uvicorn app.main:app --reload
 ```
 
-3. Update [backend_example.py](docs/backend_example.py):
-```python
-from ultralytics import YOLO
-
-# Load your trained model
-model = YOLO('path/to/your/yolov12_lung_cancer.pt')
-MODEL_LOADED = True
-```
-
-4. Implement the API endpoints as specified in [BACKEND_API_REQUIREMENTS.md](docs/BACKEND_API_REQUIREMENTS.md)
+The backend API will be available at [http://localhost:8000](http://localhost:8000) and the API docs at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 ### Frontend Configuration
 
@@ -172,6 +150,8 @@ Update your `.env` file:
 ```env
 REACT_APP_YOLO_API_URL=http://localhost:8000
 ```
+
+
 
 For production:
 ```env

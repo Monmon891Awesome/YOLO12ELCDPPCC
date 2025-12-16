@@ -5,6 +5,7 @@
  */
 
 import { getAllScans as apiGetAllScans } from '../services/yoloApi';
+import { messageAPI } from '../services/apiService';
 
 // ============ STORAGE KEYS ============
 const STORAGE_KEYS = {
@@ -151,6 +152,21 @@ const TEST_PATIENT = {
  */
 export function initializeDatabase() {
   try {
+    // MIGRATION: Clean up old session key
+    const oldSession = localStorage.getItem('pneumAISession');
+    const newSession = localStorage.getItem('pneumai_session');
+
+    if (oldSession && !newSession) {
+      // Migrate old session to new key
+      localStorage.setItem('pneumai_session', oldSession);
+      localStorage.removeItem('pneumAISession');
+      console.log('✅ Migrated session from old key to new key');
+    } else if (oldSession && newSession) {
+      // Both exist, remove old one
+      localStorage.removeItem('pneumAISession');
+      console.log('✅ Removed duplicate old session key');
+    }
+
     const appData = getFromStorage(STORAGE_KEYS.APP_DATA);
 
     // Always ensure test patient exists (even if initialized)
@@ -211,11 +227,33 @@ export function initializeDatabase() {
       saveToStorage(STORAGE_KEYS.DOCTORS, DEFAULT_DOCTORS);
     }
 
-    // Initialize empty collections
-    if (!getFromStorage(STORAGE_KEYS.PATIENTS)) saveToStorage(STORAGE_KEYS.PATIENTS, []);
-    if (!getFromStorage(STORAGE_KEYS.SCANS)) saveToStorage(STORAGE_KEYS.SCANS, []);
-    if (!getFromStorage(STORAGE_KEYS.APPOINTMENTS)) saveToStorage(STORAGE_KEYS.APPOINTMENTS, []);
-    if (!getFromStorage(STORAGE_KEYS.MESSAGES)) saveToStorage(STORAGE_KEYS.MESSAGES, []);
+    // Initialize empty collections ONLY if they don't exist
+    // CRITICAL: Never overwrite existing data!
+    const existingPatients = getFromStorage(STORAGE_KEYS.PATIENTS);
+    if (!existingPatients || !Array.isArray(existingPatients)) {
+      console.log('⚠️ Initializing PATIENTS (was missing or invalid)');
+      saveToStorage(STORAGE_KEYS.PATIENTS, []);
+    }
+
+    const existingScans = getFromStorage(STORAGE_KEYS.SCANS);
+    if (!existingScans || !Array.isArray(existingScans)) {
+      console.log('⚠️ Initializing SCANS (was missing or invalid)');
+      saveToStorage(STORAGE_KEYS.SCANS, []);
+    } else {
+      console.log(`✅ SCANS already exists with ${existingScans.length} items - NOT overwriting`);
+    }
+
+    const existingAppointments = getFromStorage(STORAGE_KEYS.APPOINTMENTS);
+    if (!existingAppointments || !Array.isArray(existingAppointments)) {
+      console.log('⚠️ Initializing APPOINTMENTS (was missing or invalid)');
+      saveToStorage(STORAGE_KEYS.APPOINTMENTS, []);
+    }
+
+    const existingMessages = getFromStorage(STORAGE_KEYS.MESSAGES);
+    if (!existingMessages || !Array.isArray(existingMessages)) {
+      console.log('⚠️ Initializing MESSAGES (was missing or invalid)');
+      saveToStorage(STORAGE_KEYS.MESSAGES, []);
+    }
 
     // Mark as initialized
     saveToStorage(STORAGE_KEYS.APP_DATA, {
@@ -246,20 +284,37 @@ export function getAllScans() {
  */
 export async function fetchAllScans() {
   try {
+    console.log('🔄 fetchAllScans: Fetching from API...');
+    const localScans = getAllScans();
+    console.log(`📊 Local scans before API fetch: ${localScans.length}`);
+
+    // Create a map of local scans for quick lookup
+    const localScanMap = new Map(localScans.map(s => [s.scanId, s]));
+
     const apiResult = await apiGetAllScans();
     if (apiResult && apiResult.success && Array.isArray(apiResult.scans)) {
-      // Merge API scans with local scans (prefer API scans)
-      const localScans = getAllScans();
+      console.log(`📡 API returned ${apiResult.scans.length} scans`);
 
-      // Create a map of API scans by ID
-      const apiScanMap = new Map(apiResult.scans.map(s => [s.scanId, s]));
+      // CRITICAL FIX: Merge API scans with local scans, preserving local patientId
+      const mergedScans = apiResult.scans.map(apiScan => {
+        const localScan = localScanMap.get(apiScan.scanId);
 
-      // Update local storage with API data
-      const mergedScans = [...apiResult.scans];
+        // If we have a local version and API has 'Unknown' or no patientId, use local patientId
+        if (localScan && (apiScan.patientId === 'Unknown' || !apiScan.patientId) && localScan.patientId) {
+          console.log(`🔧 Preserving local patientId for scan ${apiScan.scanId}: ${localScan.patientId} (API had: ${apiScan.patientId})`);
+          return {
+            ...apiScan,
+            patientId: localScan.patientId  // Preserve local patient ID!
+          };
+        }
 
-      // Add any local scans that aren't in API (e.g. pending uploads)
+        return apiScan;
+      });
+
+      // Add any local scans that aren't in API at all
       localScans.forEach(localScan => {
-        if (!apiScanMap.has(localScan.scanId)) {
+        if (!apiResult.scans.some(apiScan => apiScan.scanId === localScan.scanId)) {
+          console.log(`✅ Adding local-only scan: ${localScan.scanId} (patient: ${localScan.patientId})`);
           mergedScans.push(localScan);
         }
       });
@@ -269,13 +324,22 @@ export async function fetchAllScans() {
 
       // Update local storage
       saveToStorage(STORAGE_KEYS.SCANS, mergedScans);
+      console.log(`✅ Merged scans saved: ${mergedScans.length} total`);
+
+      // Log patient IDs for debugging
+      const patientIds = [...new Set(mergedScans.map(s => s.patientId))];
+      console.log(`📋 Patient IDs in merged scans: ${JSON.stringify(patientIds)}`);
 
       return mergedScans;
     }
-    return getAllScans();
+
+    console.log('⚠️ API fetch failed or returned no data, using local scans');
+    return localScans;
   } catch (error) {
-    console.error('Error fetching scans from API:', error);
-    return getAllScans();
+    console.error('❌ Error fetching scans from API:', error);
+    const localScans = getAllScans();
+    console.log(`📊 Returning local scans: ${localScans.length}`);
+    return localScans;
   }
 }
 
@@ -283,8 +347,19 @@ export async function fetchAllScans() {
  * Get scans by patient ID
  */
 export function getScansByPatientId(patientId) {
+  console.log(`🔍 getScansByPatientId called for: ${patientId}`);
   const scans = getAllScans();
-  return scans.filter(scan => scan.patientId === patientId);
+  console.log(`📊 Total scans in storage: ${scans.length}`);
+
+  const filtered = scans.filter(scan => scan.patientId === patientId);
+  console.log(`✅ Found ${filtered.length} scans for patient ${patientId}`);
+
+  if (scans.length > 0 && filtered.length === 0) {
+    console.warn('⚠️ WARNING: Scans exist but none match this patient ID!');
+    console.log('   Patient IDs in storage:', [...new Set(scans.map(s => s.patientId))]);
+  }
+
+  return filtered;
 }
 
 /**
@@ -300,7 +375,14 @@ export function getScanById(scanId) {
  */
 export function saveScan(scanData) {
   try {
+    console.log('💾 saveScan called with:', {
+      scanId: scanData.scanId,
+      hasPatientId: !!scanData.patientId,
+      patientId: scanData.patientId
+    });
+
     const scans = getAllScans();
+    console.log(`📊 Current scans in storage: ${scans.length}`);
 
     // Enrich scan with metadata
     const enrichedScan = {
@@ -310,6 +392,12 @@ export function saveScan(scanData) {
       patientId: scanData.patientId || getCurrentPatientId() || 'UNKNOWN'
     };
 
+    console.log('✨ Enriched scan:', {
+      scanId: enrichedScan.scanId,
+      patientId: enrichedScan.patientId,
+      hasAllFields: !!(enrichedScan.scanId && enrichedScan.patientId)
+    });
+
     // Add to beginning (most recent first)
     scans.unshift(enrichedScan);
 
@@ -317,7 +405,9 @@ export function saveScan(scanData) {
     const trimmedScans = scans.slice(0, 100);
 
     saveToStorage(STORAGE_KEYS.SCANS, trimmedScans);
-    console.log('✅ Scan saved successfully:', enrichedScan.scanId);
+    console.log(`✅ Scan saved successfully! Total scans now: ${trimmedScans.length}`);
+    console.log(`   - Scan ID: ${enrichedScan.scanId}`);
+    console.log(`   - Patient ID: ${enrichedScan.patientId}`);
     return true;
   } catch (error) {
     console.error('❌ Error saving scan:', error);
@@ -478,30 +568,92 @@ export function getPatientById(patientId) {
  */
 export function getCurrentPatientProfile() {
   const session = getCurrentSession();
+
+  console.log('🔍 getCurrentPatientProfile - Session:', session);
+
   if (session && session.userType === 'patient') {
     // Try to find in PATIENTS list first
     const patients = getAllPatients();
-    const patient = patients.find(p => p.email === session.email || p.id === session.id);
 
-    if (patient) return patient;
+    console.log('👥 Total patients in storage:', patients.length);
+    console.log('🔑 Looking for patient with:');
+    console.log('   - session.email:', session.email);
+    console.log('   - session.id:', session.id);
+
+    // Prioritize email matching as it's more reliable
+    let patient = patients.find(p => p.email === session.email);
+
+    if (patient) {
+      console.log('✅ Found patient by EMAIL:', patient.id, patient.fullName || patient.name);
+    } else {
+      console.log('⚠️ No patient found by email, trying ID match...');
+    }
+
+    // Fallback to ID matching
+    if (!patient && session.id) {
+      patient = patients.find(p => p.id === session.id);
+      if (patient) {
+        console.log('✅ Found patient by ID:', patient.id, patient.fullName || patient.name);
+      }
+    }
+
+    if (patient) {
+      console.log('✅ Returning patient profile:', patient.id);
+      return patient;
+    }
+
+    console.log('⚠️ Patient not found in PATIENTS list, checking fallbacks...');
 
     // Check if profile exists in PATIENT_PROFILES (legacy/fallback)
     const profile = getFromStorage(STORAGE_KEYS.PATIENT_PROFILES);
-    if (profile) return profile;
+    if (profile && profile.email === session.email) {
+      console.log('✅ Found patient in PATIENT_PROFILES, migrating to PATIENTS list');
 
-    // Fallback: create profile from session username
+      // Migrate to PATIENTS list
+      patients.push(profile);
+      saveToStorage(STORAGE_KEYS.PATIENTS, patients);
+
+      return profile;
+    }
+
+    // Fallback: create profile from session and save to PATIENTS list
+    console.log('⚠️ Creating new profile from session and saving to PATIENTS list');
     const defaultProfile = getDefaultPatientProfile();
+
+    // CRITICAL: Use session.id if available, otherwise derive from email
+    // NEVER use random generation as it breaks scan persistence
+    let patientId = session.id;
+
+    if (!patientId) {
+      // Derive stable ID from email (consistent across logins)
+      const emailHash = session.email.toLowerCase().replace(/[^a-z0-9]/g, '');
+      patientId = `PAT-${emailHash.substring(0, 12).toUpperCase()}`;
+      console.warn(`⚠️ session.id missing! Generated stable ID from email: ${patientId}`);
+    }
+
     const sessionProfile = {
       ...defaultProfile,
-      name: session.username || defaultProfile.name,
-      id: session.id || `PAT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+      id: patientId,
+      name: session.username || session.fullName || defaultProfile.name,
+      fullName: session.fullName || session.username || defaultProfile.name,
+      firstName: session.firstName || (session.fullName || session.username || '').split(' ')[0],
+      lastName: session.lastName || (session.fullName || session.username || '').split(' ').slice(1).join(' '),
+      email: session.email,
+      password: session.password || 'default', // Keep for compatibility
+      createdAt: new Date().toISOString()
     };
 
-    // Save it so it persists
+    // Save to BOTH PATIENTS list AND PATIENT_PROFILES for compatibility
+    patients.push(sessionProfile);
+    saveToStorage(STORAGE_KEYS.PATIENTS, patients);
     savePatientProfile(sessionProfile);
+
+    console.log('✅ Created and saved new patient profile:', sessionProfile.id);
 
     return sessionProfile;
   }
+
+  console.log('❌ No patient session found');
   return null;
 }
 
@@ -738,10 +890,15 @@ export function deleteAppointment(appointmentId) {
   }
 }
 
+
+
+// ... (existing helper functions) ...
+
 // ============ MESSAGES ============
 
 /**
  * Get all messages
+ * @deprecated Use getMessagesByUser for API access
  */
 export function getMessages() {
   return getFromStorage(STORAGE_KEYS.MESSAGES) || [];
@@ -749,34 +906,78 @@ export function getMessages() {
 
 /**
  * Get messages for a specific user
+ * returns Promise<Array>
  */
-export function getMessagesByUser(userId) {
+export async function getMessagesByUser(userId) {
+  try {
+    console.log(`📡 Fetching messages for user ${userId} from API...`);
+    const apiMessages = await messageAPI.getByUser(userId);
+
+    if (Array.isArray(apiMessages)) {
+      // Optional: Update local cache specifically for this user?
+      // For now, valid API response is the source of truth.
+      return apiMessages;
+    }
+  } catch (error) {
+    console.warn('⚠️ API getMessagesByUser failed, falling back to local storage:', error);
+  }
+
+  // Fallback to local storage
   const messages = getMessages();
   return messages.filter(m => m.senderId === userId || m.receiverId === userId);
 }
 
 /**
  * Send a message
+ * returns Promise<Object>
  */
-export function sendMessage(messageData) {
+export async function sendMessage(messageData) {
   try {
-    const messages = getMessages();
+    console.log('📡 Sending message via API...', messageData);
+    const apiMessage = await messageAPI.send(messageData);
 
+    // CRITICAL: Preserve sender/receiver names if API doesn't return them
+    const messageWithMetadata = {
+      ...apiMessage,
+      timestamp: apiMessage.timestamp || new Date().toISOString(),
+      read: apiMessage.read !== undefined ? apiMessage.read : false,
+      // Preserve names from original messageData if API returns empty/missing values
+      senderName: apiMessage.senderName || messageData.senderName || 'Unknown',
+      receiverName: apiMessage.receiverName || messageData.receiverName || 'Unknown',
+      senderRole: apiMessage.senderRole || messageData.senderRole,
+      senderId: apiMessage.senderId || messageData.senderId,
+      receiverId: apiMessage.receiverId || messageData.receiverId
+    };
+
+    console.log('✅ Message enriched:', {
+      senderName: messageWithMetadata.senderName,
+      receiverName: messageWithMetadata.receiverName,
+      timestamp: messageWithMetadata.timestamp
+    });
+
+    // Update local cache to keep it somewhat in sync
+    const messages = getMessages();
+    messages.unshift(messageWithMetadata);
+    saveToStorage(STORAGE_KEYS.MESSAGES, messages);
+
+    console.log('✅ Message sent via API and cached locally');
+    return messageWithMetadata;
+  } catch (error) {
+    console.error('❌ API sendMessage failed, falling back to local storage:', error);
+
+    // Fallback: Save locally
+    const messages = getMessages();
     const newMessage = {
       ...messageData,
-      id: `MSG-${Date.now()}`,
+      id: `MSG-LOCAL-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      read: false
+      read: false,
+      synced: false // Mark as not synced
     };
 
     messages.unshift(newMessage);
     saveToStorage(STORAGE_KEYS.MESSAGES, messages);
-
-    console.log('✅ Message sent');
     return newMessage;
-  } catch (error) {
-    console.error('❌ Error sending message:', error);
-    return null;
   }
 }
 
@@ -1117,7 +1318,9 @@ export function formatDate(dateString) {
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
@@ -1413,8 +1616,9 @@ export function getNotifications(userId, userRole) {
   }
 
   // 2. New Messages
-  const messages = getMessagesByUser(userId);
-  const unreadMessages = messages.filter(m => !m.read && m.receiverId === userId);
+  const messages = getMessages(); // Use sync version for notifications
+  const userMessages = messages.filter(m => m.senderId === userId || m.receiverId === userId);
+  const unreadMessages = userMessages.filter(m => !m.read && m.receiverId === userId);
   unreadMessages.forEach(m => {
     notifications.push({
       id: `notif-msg-${m.id}`,

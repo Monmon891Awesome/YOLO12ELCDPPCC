@@ -1,8 +1,0 @@
-{
-  "senderId": "doc_72752dd21fe4",
-  "senderName": "Dr. Test Smith",
-  "senderRole": "doctor",
-  "receiverId": "pat_643ced39",
-  "receiverName": "John Doe",
-  "content": "Hello John, I've reviewed your CT scan results. Everything looks normal. Please schedule a routine follow-up in 6 months."
-}
